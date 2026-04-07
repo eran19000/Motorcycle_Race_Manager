@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>High Contrast Dashboard Preview</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #000000;
+      --chip-bg: #f0f0f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--fg);
+      transition: background 180ms ease, color 180ms ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .wrap {
+      width: min(1100px, 95vw);
+      padding: 24px;
+      border: 2px solid #000;
+      border-radius: 14px;
+      background: transparent;
+    }
+
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .title {
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: 0.3px;
+    }
+
+    .timer {
+      text-align: center;
+      font-size: clamp(64px, 13vw, 140px);
+      font-weight: 900;
+      line-height: 1;
+      margin: 30px 0 24px;
+      letter-spacing: 1px;
+    }
+
+    .chips {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .chip {
+      border: 2px solid #000;
+      border-radius: 999px;
+      background: var(--chip-bg);
+      padding: 10px 14px;
+      font-size: 18px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      border: 2px solid #000;
+      background: #fff;
+      color: #000;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 15px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    .hint {
+      margin-top: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      opacity: 0.85;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap" id="panel">
+    <section class="top">
+      <div class="title">Live Racing Dashboard</div>
+      <div style="font-weight:900">High-Contrast Light Mode</div>
+    </section>
+
+    <section class="timer" id="timer">00:00.000</section>
+
+    <section class="chips">
+      <div class="chip">Lean Angle: 28.4 deg</div>
+      <div class="chip">Max Speed: 243.7 km/h</div>
+      <div class="chip">Current Lap #: 4</div>
+      <div class="chip">Best Lap: 01:42.771</div>
+      <div class="chip">Ideal Time: 01:42.108</div>
+    </section>
+
+    <section class="actions">
+      <button id="normalBtn">Normal (White)</button>
+      <button id="sectorBtn">Best Sector (Black Invert)</button>
+      <button id="lapBtn">Best Lap (Green)</button>
+    </section>
+    <div class="hint">השעון הוא האלמנט הכי בולט. מצב רגיל לבן, סקטור טוב שחור, לאפ טוב ירוק.</div>
+  </main>
+
+  <script>
+    const timerEl = document.getElementById("timer");
+    const root = document.documentElement;
+    let start = performance.now();
+
+    function pad(n, w) {
+      return n.toString().padStart(w, "0");
+    }
+
+    function renderTimer() {
+      const ms = Math.floor(performance.now() - start);
+      const sec = Math.floor(ms / 1000);
+      const min = Math.floor(sec / 60);
+      const remSec = sec % 60;
+      const remMs = ms % 1000;
+      timerEl.textContent = `${pad(min, 2)}:${pad(remSec, 2)}.${pad(remMs, 3)}`;
+      requestAnimationFrame(renderTimer);
+    }
+
+    function setNormal() {
+      root.style.setProperty("--bg", "#ffffff");
+      root.style.setProperty("--fg", "#000000");
+      root.style.setProperty("--chip-bg", "#f0f0f0");
+    }
+
+    function setBestSector() {
+      root.style.setProperty("--bg", "#000000");
+      root.style.setProperty("--fg", "#ffffff");
+      root.style.setProperty("--chip-bg", "#151515");
+    }
+
+    function setBestLap() {
+      root.style.setProperty("--bg", "#14a44d");
+      root.style.setProperty("--fg", "#000000");
+      root.style.setProperty("--chip-bg", "#8de6ad");
+    }
+
+    document.getElementById("normalBtn").addEventListener("click", setNormal);
+    document.getElementById("sectorBtn").addEventListener("click", setBestSector);
+    document.getElementById("lapBtn").addEventListener("click", setBestLap);
+
+    setNormal();
+    renderTimer();
+  </script>
+</body>
+</html>
