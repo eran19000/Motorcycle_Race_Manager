@@ -104,6 +104,31 @@
       font-weight: 700;
       opacity: 0.85;
     }
+
+    .bottom-bar {
+      margin-top: 18px;
+      border: 2px solid #000;
+      border-radius: 12px;
+      background: #d32f2f;
+      color: #fff;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      padding: 8px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .bottom-item {
+      border-radius: 8px;
+      padding: 8px 6px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .bottom-item.active {
+      background: #ffeb3b;
+      color: #000;
+    }
   </style>
 </head>
 <body>
@@ -130,6 +155,12 @@
       <button id="thousandBtn">Thousandths: OFF</button>
     </section>
     <div class="hint">השעון הוא האלמנט הכי בולט. מצב רגיל לבן, סקטור טוב שחור, לאפ טוב ירוק.</div>
+    <nav class="bottom-bar" aria-label="Bottom navigation preview">
+      <div class="bottom-item">רישום</div>
+      <div class="bottom-item active">לייב</div>
+      <div class="bottom-item">היסטוריה</div>
+      <div class="bottom-item">AI</div>
+    </nav>
   </main>
 
   <script>

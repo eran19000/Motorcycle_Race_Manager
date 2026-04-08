@@ -17,13 +17,40 @@ class RaceManagerApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
-        scaffoldBackgroundColor: Colors.grey.shade100,
+        scaffoldBackgroundColor: Colors.grey.shade400,
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.black,
           brightness: Brightness.light,
         ).copyWith(
           surface: Colors.white,
           onSurface: Colors.black,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFFD32F2F),
+          foregroundColor: Colors.white,
+          centerTitle: false,
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: const Color(0xFFD32F2F),
+          indicatorColor: const Color(0xFFFFEB3B),
+          iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const IconThemeData(color: Colors.black);
+            }
+            return const IconThemeData(color: Colors.white70);
+          }),
+          labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.w900,
+              );
+            }
+            return const TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w700,
+            );
+          }),
         ),
         textTheme: ThemeData.light().textTheme.apply(
               bodyColor: Colors.black,
@@ -37,6 +64,31 @@ class RaceManagerApp extends StatelessWidget {
             ),
         chipTheme: const ChipThemeData(
           side: BorderSide(color: Colors.black, width: 1.3),
+        ),
+        cardTheme: CardThemeData(
+          color: Colors.white,
+          surfaceTintColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: Colors.black, width: 1.1),
+          ),
+        ),
+        switchTheme: SwitchThemeData(
+          thumbColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) return Colors.green.shade700;
+            return Colors.grey.shade600;
+          }),
+          trackColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) return Colors.green.shade300;
+            return Colors.grey.shade300;
+          }),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: Colors.green.shade700,
+            disabledBackgroundColor: Colors.grey.shade500,
+            foregroundColor: Colors.white,
+          ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
@@ -80,7 +132,7 @@ class _MobilePreviewFrameState extends State<_MobilePreviewFrame> {
         final useFrame = canUseFrame && _forcePhoneFrame;
         if (!canUseFrame) return widget.child;
         return Scaffold(
-          backgroundColor: Colors.grey.shade300,
+          backgroundColor: Colors.grey.shade400,
           body: Column(
             children: [
               Align(

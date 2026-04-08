@@ -6,7 +6,14 @@ import '../services/session_history_service.dart';
 import '../widgets/time_formatters.dart';
 
 class PostSessionScreen extends StatefulWidget {
-  const PostSessionScreen({super.key});
+  const PostSessionScreen({
+    super.key,
+    this.organizerGroupFilter,
+  });
+
+  /// When set (track-day organizer portal), only sessions for this organizer group.
+  /// When null (rider / admin), all saved sessions are listed.
+  final String? organizerGroupFilter;
 
   @override
   State<PostSessionScreen> createState() => _PostSessionScreenState();
@@ -22,8 +29,20 @@ class _PostSessionScreenState extends State<PostSessionScreen> {
     _load();
   }
 
+  @override
+  void didUpdateWidget(PostSessionScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.organizerGroupFilter != widget.organizerGroupFilter) {
+      _load();
+    }
+  }
+
   Future<void> _load() async {
-    final rows = await _historyService.loadSessions();
+    var rows = await _historyService.loadSessions();
+    final filter = widget.organizerGroupFilter?.trim();
+    if (filter != null && filter.isNotEmpty) {
+      rows = rows.where((s) => s.visibleToOrganizer(filter)).toList();
+    }
     if (!mounted) return;
     setState(() => _saved = rows);
   }
@@ -35,6 +54,20 @@ class _PostSessionScreenState extends State<PostSessionScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         Text('Saved Sessions', style: Theme.of(context).textTheme.headlineSmall),
+        if (widget.organizerGroupFilter != null &&
+            widget.organizerGroupFilter!.trim().isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            'מציג רק סשנים של ימי המסלול של המארגן הזה (לפי קבוצה + מסלול + תאריך).',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ] else ...[
+          const SizedBox(height: 6),
+          Text(
+            'מציג את כל הסשנים השמורים במכשיר (תצוגת אדמין / רוכב).',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
         const SizedBox(height: 8),
         ..._saved.map(
           (item) => Card(
@@ -48,37 +81,40 @@ class _PostSessionScreenState extends State<PostSessionScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 16),
-        Text('Detailed Sample Breakdown', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 8),
-        ...List.generate(sessions.length, (index) {
-          final session = sessions[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: ExpansionTile(
-              title: Text(
-                'Session ${session.id} - ${DateFormat('yyyy-MM-dd HH:mm').format(session.startTime)}',
-              ),
-              subtitle: Text(
-                'Best ${formatDuration(session.bestLap ?? Duration.zero)} | Ideal ${formatDuration(session.idealLapTime ?? Duration.zero)}',
-              ),
-              children: [
-                ...session.laps.map((lap) => _lapTile(session, lap)),
-                const Divider(),
-                const ListTile(
-                  title: Text('Heatmap'),
-                  subtitle: Text('Green: Acceleration, Red: Braking zones'),
-                  trailing: Icon(Icons.map),
+        if (widget.organizerGroupFilter == null ||
+            widget.organizerGroupFilter!.trim().isEmpty) ...[
+          const SizedBox(height: 16),
+          Text('Detailed Sample Breakdown', style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 8),
+          ...List.generate(sessions.length, (index) {
+            final session = sessions[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: ExpansionTile(
+                title: Text(
+                  'Session ${session.id} - ${DateFormat('yyyy-MM-dd HH:mm').format(session.startTime)}',
                 ),
-                const ListTile(
-                  title: Text('Video Sync'),
-                  subtitle: Text('Align camera timestamp with telemetry timeline'),
-                  trailing: Icon(Icons.video_camera_back),
+                subtitle: Text(
+                  'Best ${formatDuration(session.bestLap ?? Duration.zero)} | Ideal ${formatDuration(session.idealLapTime ?? Duration.zero)}',
                 ),
-              ],
-            ),
-          );
-        }),
+                children: [
+                  ...session.laps.map((lap) => _lapTile(session, lap)),
+                  const Divider(),
+                  const ListTile(
+                    title: Text('Heatmap'),
+                    subtitle: Text('Green: Acceleration, Red: Braking zones'),
+                    trailing: Icon(Icons.map),
+                  ),
+                  const ListTile(
+                    title: Text('Video Sync'),
+                    subtitle: Text('Align camera timestamp with telemetry timeline'),
+                    trailing: Icon(Icons.video_camera_back),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
       ],
     );
   }

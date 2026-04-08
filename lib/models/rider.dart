@@ -3,6 +3,9 @@ class RiderLiveData {
     required this.id,
     required this.displayName,
     required this.bestLap,
+    required this.lastLap,
+    required this.sectors,
+    required this.maxSpeedKmh,
     required this.positionX,
     required this.positionY,
     required this.speedGroup,
@@ -13,6 +16,9 @@ class RiderLiveData {
   final String id;
   final String displayName;
   final Duration bestLap;
+  final Duration lastLap;
+  final List<Duration> sectors;
+  final double maxSpeedKmh;
   final double positionX;
   final double positionY;
   final String speedGroup;
@@ -23,6 +29,9 @@ class RiderLiveData {
     String? id,
     String? displayName,
     Duration? bestLap,
+    Duration? lastLap,
+    List<Duration>? sectors,
+    double? maxSpeedKmh,
     double? positionX,
     double? positionY,
     String? speedGroup,
@@ -33,6 +42,9 @@ class RiderLiveData {
       id: id ?? this.id,
       displayName: displayName ?? this.displayName,
       bestLap: bestLap ?? this.bestLap,
+      lastLap: lastLap ?? this.lastLap,
+      sectors: sectors ?? this.sectors,
+      maxSpeedKmh: maxSpeedKmh ?? this.maxSpeedKmh,
       positionX: positionX ?? this.positionX,
       positionY: positionY ?? this.positionY,
       speedGroup: speedGroup ?? this.speedGroup,

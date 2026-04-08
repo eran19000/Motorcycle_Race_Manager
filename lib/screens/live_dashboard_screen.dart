@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/telemetry_service.dart';
 import '../services/session_history_service.dart';
@@ -17,6 +18,8 @@ class LiveDashboardScreen extends StatefulWidget {
 class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
   bool _showThousandths = false;
   int _layout = 1;
+  bool _landscapeMode = false;
+  int _timerPreset = 1;
   final SessionHistoryService _historyService = SessionHistoryService();
 
   @override
@@ -31,15 +34,19 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
             ? Colors.green
             : invert
                 ? Colors.black
-                : Colors.white;
+                : Colors.grey.shade300;
         final fgColor = invert ? Colors.white : Colors.black;
 
         return Container(
           color: bgColor,
           padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -72,34 +79,40 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                   ),
                 ],
               ),
-              const Spacer(flex: 2),
-              Center(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
+              const SizedBox(height: 16),
+              _landscapeMode
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: _timerView(data, fgColor),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 2,
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _metric('Speed', '${data.speedKmh.toStringAsFixed(1)} km/h', invert),
+                              _metric('Lap', '${data.currentLap}', invert),
+                              _metric('Best', formatDuration(data.bestLap, precision: _showThousandths ? TimerPrecision.millisecond : TimerPrecision.centisecond), invert),
+                              _metric('Ideal', formatDuration(data.idealLap, precision: _showThousandths ? TimerPrecision.millisecond : TimerPrecision.centisecond), invert),
+                            ],
+                          ),
+                        ),
+                      ],
+                    )
+                  : _timerView(data, fgColor),
+              const SizedBox(height: 8),
+              if (!_landscapeMode)
+                Center(
                   child: Text(
-                    formatDuration(
-                      data.elapsed,
-                      precision: _showThousandths
-                          ? TimerPrecision.millisecond
-                          : TimerPrecision.centisecond,
-                    ),
-                    style: TextStyle(
-                      fontSize: 104,
-                      fontWeight: FontWeight.w900,
-                      color: fgColor,
-                    ),
-                    maxLines: 1,
-                    softWrap: false,
+                    widget.telemetryService.externalGpsProviderLabel(),
+                    style: TextStyle(color: fgColor, fontWeight: FontWeight.w900),
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  widget.telemetryService.externalGpsProviderLabel(),
-                  style: TextStyle(color: fgColor, fontWeight: FontWeight.w900),
-                ),
-              ),
               const SizedBox(height: 6),
               Center(
                 child: Text(
@@ -179,6 +192,20 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                     ],
                     onChanged: (value) => setState(() => _layout = value ?? _layout),
                   ),
+                  DropdownButton<int>(
+                    value: _timerPreset,
+                    items: const [
+                      DropdownMenuItem(value: 1, child: Text('Clock Preset 1')),
+                      DropdownMenuItem(value: 2, child: Text('Clock Preset 2')),
+                      DropdownMenuItem(value: 3, child: Text('Clock Preset 3')),
+                    ],
+                    onChanged: (value) => setState(() => _timerPreset = value ?? _timerPreset),
+                  ),
+                  FilterChip(
+                    label: Text(_landscapeMode ? 'Landscape: ON' : 'Landscape: OFF'),
+                    selected: _landscapeMode,
+                    onSelected: (value) => setState(() => _landscapeMode = value),
+                  ),
                   FilterChip(
                     label: Text(_showThousandths ? 'Thousandths: ON' : 'Thousandths: OFF'),
                     selected: _showThousandths,
@@ -186,7 +213,13 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                   ),
                   FilledButton(
                     onPressed: () async {
-                      await _historyService.saveSnapshot(data);
+                      final prefs = await SharedPreferences.getInstance();
+                      final org =
+                          prefs.getString('active_rider_organizer_group');
+                      await _historyService.saveSnapshot(
+                        data,
+                        riderOrganizerGroupName: org,
+                      );
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Session snapshot saved to history')),
@@ -208,8 +241,11 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                   ),
                 ),
               ),
-              const Spacer(),
-            ],
+              const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+            ),
           ),
         );
       },
@@ -225,8 +261,31 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
           fontWeight: FontWeight.w900,
         ),
       ),
-      backgroundColor: invert ? Colors.black : Colors.grey.shade200,
+      backgroundColor: invert ? Colors.black : Colors.white,
       side: BorderSide(color: invert ? Colors.white : Colors.black),
+    );
+  }
+
+  Widget _timerView(TelemetrySnapshot data, Color fgColor) {
+    final text = formatDuration(
+      data.elapsed,
+      precision: _showThousandths ? TimerPrecision.millisecond : TimerPrecision.centisecond,
+    );
+    final style = _timerPreset == 1
+        ? TextStyle(fontSize: 104, fontWeight: FontWeight.w900, color: fgColor)
+        : _timerPreset == 2
+            ? TextStyle(fontSize: 92, fontWeight: FontWeight.w700, color: fgColor, letterSpacing: 2)
+            : TextStyle(fontSize: 82, fontWeight: FontWeight.w900, color: fgColor);
+    return Center(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          text,
+          style: style,
+          maxLines: 1,
+          softWrap: false,
+        ),
+      ),
     );
   }
 }

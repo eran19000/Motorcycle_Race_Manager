@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../services/group_management_service.dart';
 import '../services/telemetry_service.dart';
 import '../widgets/time_formatters.dart';
 import '../widgets/track_map_widget.dart';
 
 class AdminScreen extends StatefulWidget {
-  const AdminScreen({super.key, required this.telemetryService});
+  const AdminScreen({
+    super.key,
+    required this.telemetryService,
+  });
 
   final TelemetryService telemetryService;
 
@@ -15,103 +17,78 @@ class AdminScreen extends StatefulWidget {
 }
 
 class _AdminScreenState extends State<AdminScreen> {
-  final GroupManagementService _groupService = GroupManagementService.instance;
-  final TextEditingController _newGroupController = TextEditingController();
-
-  @override
-  void dispose() {
-    _newGroupController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: Listenable.merge([widget.telemetryService, _groupService]),
+      animation: widget.telemetryService,
       builder: (context, _) {
         final riders = widget.telemetryService.snapshot.riders;
         final data = widget.telemetryService.snapshot;
         final sorted = [...riders]..sort((a, b) => a.bestLap.compareTo(b.bestLap));
+        final groups = ['A+', 'A', 'B+', 'B', 'C', 'D'];
         return Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Admin Mode', style: Theme.of(context).textTheme.headlineMedium),
-              const SizedBox(height: 8),
-              const Text(
-                'Track-Day Organizer Groups (must be paid to open day)',
-                style: TextStyle(fontWeight: FontWeight.w900),
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _newGroupController,
-                      decoration: const InputDecoration(
-                        labelText: 'New organizer group name',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    onPressed: () {
-                      _groupService.addGroup(_newGroupController.text);
-                      _newGroupController.clear();
-                    },
-                    child: const Text('Add'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              ..._groupService.groups.map(
-                (group) => Card(
-                  child: SwitchListTile(
-                    title: Text(group.name),
-                    subtitle: Text(
-                      group.paidForCurrentDay
-                          ? 'Paid for this track day'
-                          : 'Not paid - cannot open day',
-                    ),
-                    value: group.paidForCurrentDay,
-                    onChanged: (value) => _groupService.setPaid(group.id, value),
-                  ),
-                ),
-              ),
+              Text('Track-Day Organizer Control', style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 8),
               Text(
-                'Real-time leaderboard and rider positions',
+                'Track-day riders: leaderboard, sector/lap times, and live positions',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 10),
               SizedBox(
-                height: 220,
-                child: ListView.builder(
-                  itemCount: sorted.length,
-                  itemBuilder: (context, index) {
-                    final rider = sorted[index];
-                    Color? color;
-                    if (rider.isSessionBest) color = Colors.red;
-                    if (rider.isPersonalBest) color = Colors.orange;
-                    return LongPressDraggable<String>(
-                      data: rider.id,
-                      feedback: Material(
-                        color: Colors.transparent,
-                        child: Chip(
-                          label: Text(rider.displayName),
-                          backgroundColor: Colors.white,
-                        ),
-                      ),
-                      child: Card(
-                        child: ListTile(
-                          title: Text(rider.displayName, style: TextStyle(color: color)),
-                          subtitle: Text('Group: ${rider.speedGroup}'),
-                          trailing: Text(formatDuration(rider.bestLap)),
-                        ),
-                      ),
+                height: 280,
+                child: ListView(
+                  children: groups.map((group) {
+                    final inGroup = sorted.where((r) => r.speedGroup == group).toList();
+                    return ExpansionTile(
+                      title: Text('Speed Group $group (${inGroup.length})'),
+                      children: inGroup.map((rider) {
+                        Color? color;
+                        if (rider.isSessionBest) color = Colors.red;
+                        if (rider.isPersonalBest) color = Colors.orange;
+                        return LongPressDraggable<String>(
+                          data: rider.id,
+                          feedback: Material(
+                            color: Colors.transparent,
+                            child: Chip(
+                              label: Text(rider.displayName),
+                              backgroundColor: Colors.white,
+                            ),
+                          ),
+                          child: Card(
+                            child: ListTile(
+                              title: Text(rider.displayName, style: TextStyle(color: color)),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Group: ${rider.speedGroup}'),
+                                  Text(
+                                    'S1 ${formatDuration(rider.sectors[0])} | '
+                                    'S2 ${formatDuration(rider.sectors[1])} | '
+                                    'S3 ${formatDuration(rider.sectors[2])}',
+                                  ),
+                                  Text(
+                                    'Last Lap: ${formatDuration(rider.lastLap)} | '
+                                    'Best Lap: ${formatDuration(rider.bestLap)}',
+                                  ),
+                                  Text('Max Speed: ${rider.maxSpeedKmh.toStringAsFixed(1)} km/h'),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     );
-                  },
+                  }).toList(),
                 ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Organizer view: all riders, sectors, lap times, and live map for assigned track day.',
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 8),
               const Text('Live Track Map'),
@@ -136,11 +113,12 @@ class _AdminScreenState extends State<AdminScreen> {
               const Text('Speed groups (6 levels)'),
               Wrap(
                 spacing: 8,
-                children: ['A+', 'A', 'B+', 'B', 'C', 'D']
+                children: groups
                     .map(
                       (group) => DragTarget<String>(
                         onAcceptWithDetails: (details) {
-                          widget.telemetryService.moveRiderToSpeedGroup(details.data, group);
+                          widget.telemetryService
+                              .moveRiderToSpeedGroup(details.data, group);
                         },
                         builder: (context, _, __) {
                           return Chip(label: Text('Drop Zone: $group'));

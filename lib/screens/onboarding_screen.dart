@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/racing_tracks.dart';
 import '../models/app_user.dart';
@@ -51,7 +52,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final lapSeconds = double.parse(_lapController.text.trim());
     final selectedGroupName = _groupService.groups
@@ -69,6 +70,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       typicalLapSeconds: lapSeconds,
       initialSpeedGroup: inferSpeedGroup(lapSeconds),
     );
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('active_rider_organizer_group', user.managementDayGroup);
+    await prefs.setString('active_rider_track_id', _selectedTrack.id);
+    if (!mounted) return;
     setState(() {
       _result =
           'Rider ${user.userName} assigned to ${user.initialSpeedGroup} group'
@@ -188,13 +193,36 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    final whiteFieldTheme = Theme.of(context).copyWith(
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Colors.black, width: 1.2),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Colors.black, width: 1.2),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Colors.black, width: 1.5),
+        ),
+      ),
+    );
+
+    return Container(
+      color: Colors.grey.shade300,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Theme(
+          data: whiteFieldTheme,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             Text('User Onboarding', style: Theme.of(context).textTheme.headlineMedium),
             const SizedBox(height: 16),
             TextFormField(
@@ -250,7 +278,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Text('Race Track (IL + World circuits)', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 6),
             ListTile(
-              tileColor: Colors.grey.shade100,
+              tileColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
                 side: const BorderSide(color: Colors.black, width: 1.1),
@@ -350,7 +378,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               _gpsStatus,
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );
