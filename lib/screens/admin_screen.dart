@@ -93,11 +93,21 @@ class _AdminScreenState extends State<AdminScreen> {
                     Color? color;
                     if (rider.isSessionBest) color = Colors.red;
                     if (rider.isPersonalBest) color = Colors.orange;
-                    return Card(
-                      child: ListTile(
-                        title: Text(rider.displayName, style: TextStyle(color: color)),
-                        subtitle: Text('Group: ${rider.speedGroup}'),
-                        trailing: Text(formatDuration(rider.bestLap)),
+                    return LongPressDraggable<String>(
+                      data: rider.id,
+                      feedback: Material(
+                        color: Colors.transparent,
+                        child: Chip(
+                          label: Text(rider.displayName),
+                          backgroundColor: Colors.white,
+                        ),
+                      ),
+                      child: Card(
+                        child: ListTile(
+                          title: Text(rider.displayName, style: TextStyle(color: color)),
+                          subtitle: Text('Group: ${rider.speedGroup}'),
+                          trailing: Text(formatDuration(rider.bestLap)),
+                        ),
                       ),
                     );
                   },
@@ -127,7 +137,16 @@ class _AdminScreenState extends State<AdminScreen> {
               Wrap(
                 spacing: 8,
                 children: ['A+', 'A', 'B+', 'B', 'C', 'D']
-                    .map((group) => Chip(label: Text('Drop Zone: $group')))
+                    .map(
+                      (group) => DragTarget<String>(
+                        onAcceptWithDetails: (details) {
+                          widget.telemetryService.moveRiderToSpeedGroup(details.data, group);
+                        },
+                        builder: (context, _, __) {
+                          return Chip(label: Text('Drop Zone: $group'));
+                        },
+                      ),
+                    )
                     .toList(),
               ),
             ],

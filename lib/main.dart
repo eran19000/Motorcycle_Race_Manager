@@ -38,6 +38,22 @@ class RaceManagerApp extends StatelessWidget {
         chipTheme: const ChipThemeData(
           side: BorderSide(color: Colors.black, width: 1.3),
         ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Colors.black, width: 1.2),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Colors.black, width: 1.2),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Colors.black, width: 1.5),
+          ),
+        ),
       ),
       home: const _MobilePreviewFrame(child: HomeShell()),
     );
