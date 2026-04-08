@@ -6,9 +6,10 @@
   <title>High Contrast Dashboard Preview</title>
   <style>
     :root {
-      --bg: #ffffff;
+      --bg: #d8d8d8;
       --fg: #000000;
       --chip-bg: #f0f0f0;
+      --panel-bg: #ffffff;
     }
 
     * {
@@ -32,7 +33,7 @@
       padding: 24px;
       border: 2px solid #000;
       border-radius: 14px;
-      background: transparent;
+      background: var(--panel-bg);
     }
 
     .top {
@@ -56,6 +57,7 @@
       line-height: 1;
       margin: 30px 0 24px;
       letter-spacing: 1px;
+      white-space: nowrap;
     }
 
     .chips {
@@ -125,6 +127,7 @@
       <button id="normalBtn">Normal (White)</button>
       <button id="sectorBtn">Best Sector (Black Invert)</button>
       <button id="lapBtn">Best Lap (Green)</button>
+      <button id="thousandBtn">Thousandths: OFF</button>
     </section>
     <div class="hint">השעון הוא האלמנט הכי בולט. מצב רגיל לבן, סקטור טוב שחור, לאפ טוב ירוק.</div>
   </main>
@@ -133,6 +136,7 @@
     const timerEl = document.getElementById("timer");
     const root = document.documentElement;
     let start = performance.now();
+    let showThousandths = false;
 
     function pad(n, w) {
       return n.toString().padStart(w, "0");
@@ -144,24 +148,28 @@
       const min = Math.floor(sec / 60);
       const remSec = sec % 60;
       const remMs = ms % 1000;
-      timerEl.textContent = `${pad(min, 2)}:${pad(remSec, 2)}.${pad(remMs, 3)}`;
+      const decimal = showThousandths ? pad(remMs, 3) : pad(Math.floor(remMs / 10), 2);
+      timerEl.textContent = `${pad(min, 2)}:${pad(remSec, 2)}.${decimal}`;
       requestAnimationFrame(renderTimer);
     }
 
     function setNormal() {
       root.style.setProperty("--bg", "#ffffff");
+      root.style.setProperty("--panel-bg", "#ffffff");
       root.style.setProperty("--fg", "#000000");
       root.style.setProperty("--chip-bg", "#f0f0f0");
     }
 
     function setBestSector() {
       root.style.setProperty("--bg", "#000000");
+      root.style.setProperty("--panel-bg", "#000000");
       root.style.setProperty("--fg", "#ffffff");
       root.style.setProperty("--chip-bg", "#151515");
     }
 
     function setBestLap() {
       root.style.setProperty("--bg", "#14a44d");
+      root.style.setProperty("--panel-bg", "#14a44d");
       root.style.setProperty("--fg", "#000000");
       root.style.setProperty("--chip-bg", "#8de6ad");
     }
@@ -169,6 +177,12 @@
     document.getElementById("normalBtn").addEventListener("click", setNormal);
     document.getElementById("sectorBtn").addEventListener("click", setBestSector);
     document.getElementById("lapBtn").addEventListener("click", setBestLap);
+    document.getElementById("thousandBtn").addEventListener("click", () => {
+      showThousandths = !showThousandths;
+      document.getElementById("thousandBtn").textContent = showThousandths
+        ? "Thousandths: ON"
+        : "Thousandths: OFF";
+    });
 
     setNormal();
     renderTimer();

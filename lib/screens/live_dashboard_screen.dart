@@ -15,7 +15,7 @@ class LiveDashboardScreen extends StatefulWidget {
 }
 
 class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
-  TimerPrecision _precision = TimerPrecision.millisecond;
+  bool _showThousandths = false;
   int _layout = 1;
   final SessionHistoryService _historyService = SessionHistoryService();
 
@@ -74,12 +74,22 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
               ),
               const Spacer(flex: 2),
               Center(
-                child: Text(
-                  formatDuration(data.elapsed, precision: _precision),
-                  style: TextStyle(
-                    fontSize: 104,
-                    fontWeight: FontWeight.w900,
-                    color: fgColor,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    formatDuration(
+                      data.elapsed,
+                      precision: _showThousandths
+                          ? TimerPrecision.millisecond
+                          : TimerPrecision.centisecond,
+                    ),
+                    style: TextStyle(
+                      fontSize: 104,
+                      fontWeight: FontWeight.w900,
+                      color: fgColor,
+                    ),
+                    maxLines: 1,
+                    softWrap: false,
                   ),
                 ),
               ),
@@ -108,8 +118,26 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                   if (_layout != 2)
                     _metric('Max Speed', '${data.maxSpeedKmh.toStringAsFixed(1)} km/h', invert),
                   _metric('Current Lap', '${data.currentLap}', invert),
-                  _metric('Best Lap', formatDuration(data.bestLap, precision: _precision), invert),
-                  _metric('Ideal Time', formatDuration(data.idealLap, precision: _precision), invert),
+                  _metric(
+                    'Best Lap',
+                    formatDuration(
+                      data.bestLap,
+                      precision: _showThousandths
+                          ? TimerPrecision.millisecond
+                          : TimerPrecision.centisecond,
+                    ),
+                    invert,
+                  ),
+                  _metric(
+                    'Ideal Time',
+                    formatDuration(
+                      data.idealLap,
+                      precision: _showThousandths
+                          ? TimerPrecision.millisecond
+                          : TimerPrecision.centisecond,
+                    ),
+                    invert,
+                  ),
                 ],
               ),
               const SizedBox(height: 14),
@@ -151,19 +179,10 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                     ],
                     onChanged: (value) => setState(() => _layout = value ?? _layout),
                   ),
-                  DropdownButton<TimerPrecision>(
-                    value: _precision,
-                    items: const [
-                      DropdownMenuItem(
-                        value: TimerPrecision.centisecond,
-                        child: Text('Precision: 0.01s'),
-                      ),
-                      DropdownMenuItem(
-                        value: TimerPrecision.millisecond,
-                        child: Text('Precision: 0.001s'),
-                      ),
-                    ],
-                    onChanged: (value) => setState(() => _precision = value ?? _precision),
+                  FilterChip(
+                    label: Text(_showThousandths ? 'Thousandths: ON' : 'Thousandths: OFF'),
+                    selected: _showThousandths,
+                    onSelected: (value) => setState(() => _showThousandths = value),
                   ),
                   FilledButton(
                     onPressed: () async {
