@@ -84,6 +84,7 @@ class TelemetryService extends ChangeNotifier {
   int _lap = 1;
   double _maxSpeed = 0;
   double _speed = 0;
+  double _gForce = 0;
   double _leanAngle = 0;
   bool _useExternalGps = false;
   bool _personalBestSectorTriggered = false;
@@ -95,10 +96,17 @@ class TelemetryService extends ChangeNotifier {
   bool _demoMode = kIsWeb;
   final List<TelemetryTrailPoint> _telemetryTrail = [];
   StreamSubscription<GyroscopeEvent>? _gyroSub;
+  StreamSubscription<AccelerometerEvent>? _accSub;
   StreamSubscription<Position>? _positionSub;
   StreamSubscription<List<ScanResult>>? _scanSub;
   StreamSubscription<List<int>>? _nmeaSub;
   BluetoothDevice? _externalDevice;
+  DateTime? _lastGpsUpdateAt;
+  final List<Duration> _sectorSplitTargets = [
+    const Duration(seconds: 28),
+    const Duration(seconds: 58),
+    const Duration(seconds: 88),
+  ];
   final List<RiderLiveData> _mockRiders = [
     RiderLiveData(
       id: 'r41',
@@ -173,6 +181,12 @@ class TelemetryService extends ChangeNotifier {
       _leanAngle = (_leanAngle + event.y * 1.4).clamp(-62.0, 62.0);
       notifyListeners();
     });
+    _accSub = accelerometerEventStream().listen((event) {
+      final magnitude = sqrt(
+        event.x * event.x + event.y * event.y + event.z * event.z,
+      );
+      _gForce = (magnitude / 9.80665).clamp(0.0, 4.0);
+    });
 
     final hasPermission = await _requestGpsPermission();
     if (hasPermission) {
@@ -183,8 +197,24 @@ class TelemetryService extends ChangeNotifier {
         ),
       ).listen((position) {
         final previousSpeed = _speed;
+        final now = DateTime.now();
+        final speedFromSensor = position.speed * 3.6;
+        double computedSpeed = max(speedFromSensor, 0.0);
+        if (_lastPosition != null && _lastGpsUpdateAt != null) {
+          final dtMs = now.difference(_lastGpsUpdateAt!).inMilliseconds;
+          if (dtMs > 0 && computedSpeed < 2) {
+            final dM = Geolocator.distanceBetween(
+              _lastPosition!.latitude,
+              _lastPosition!.longitude,
+              position.latitude,
+              position.longitude,
+            );
+            computedSpeed = (dM / (dtMs / 1000.0)) * 3.6;
+          }
+        }
+        _lastGpsUpdateAt = now;
         _lastPosition = position;
-        _speed = max(position.speed * 3.6, 0.0);
+        _speed = max(computedSpeed, 0.0);
         _pushTrailPoint(position, _speed - previousSpeed >= 0);
         if (_speed > _maxSpeed) _maxSpeed = _speed;
         _evaluateFinishLineCross(position);
@@ -204,9 +234,32 @@ class TelemetryService extends ChangeNotifier {
   }
 
   void setFinishLineFromCurrentLocation() {
-    if (_lastPosition == null) return;
-    _finishLine = _lastPosition;
+    _finishLine = _lastPosition ??
+        Position(
+          latitude: _selectedTrack.finishLat,
+          longitude: _selectedTrack.finishLng,
+          timestamp: DateTime.now(),
+          accuracy: 6,
+          altitude: 0,
+          heading: 0,
+          speed: 0,
+          speedAccuracy: 0,
+          altitudeAccuracy: 0,
+          headingAccuracy: 0,
+        );
     _finishLineArmed = true;
+    notifyListeners();
+  }
+
+  List<Duration> get sectorSplitTargets => List<Duration>.from(_sectorSplitTargets);
+
+  void setSectorSplitTargets(List<Duration> cumulativeTargets) {
+    if (cumulativeTargets.length != 3) return;
+    _sectorSplitTargets
+      ..clear()
+      ..addAll(cumulativeTargets);
+    _currentSector = 0;
+    _currentSectors.clear();
     notifyListeners();
   }
 
@@ -300,11 +353,7 @@ class TelemetryService extends ChangeNotifier {
 
   void _evaluateSectorSplitByLapProgress() {
     final lapElapsed = DateTime.now().difference(_lapStart);
-    final splitTargets = <Duration>[
-      const Duration(seconds: 28),
-      const Duration(seconds: 58),
-      const Duration(seconds: 88),
-    ];
+    final splitTargets = _sectorSplitTargets;
 
     while (_currentSector < splitTargets.length &&
         lapElapsed >= splitTargets[_currentSector]) {
@@ -466,13 +515,14 @@ class TelemetryService extends ChangeNotifier {
     final sentence = utf8.decode(bytes, allowMalformed: true);
     if (!sentence.contains('GPRMC')) return;
     // Placeholder: when external stream is active we bias updates as high-frequency source.
-    _speed = max(_speed, 22);
+    _speed = max(_speed, 22 + (_gForce * 5));
     notifyListeners();
   }
 
   @override
   void dispose() {
     _gyroSub?.cancel();
+    _accSub?.cancel();
     _positionSub?.cancel();
     _scanSub?.cancel();
     _nmeaSub?.cancel();

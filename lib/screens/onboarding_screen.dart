@@ -213,7 +213,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
 
     return Container(
-      color: Colors.grey.shade300,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF050505), Color(0xFF141414)],
+        ),
+      ),
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Theme(
@@ -223,7 +229,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-            Text('User Onboarding', style: Theme.of(context).textTheme.headlineMedium),
+            Text(
+              'User Onboarding',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: Colors.white),
+            ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _nameController,
@@ -235,6 +244,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               decoration: const InputDecoration(
                 labelText: 'Email or Phone',
                 helperText: 'אפשר הרשמה דרך מייל או טלפון',
+                helperMaxLines: 2,
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               ),
               validator: (value) => (value == null || value.isEmpty) ? 'Required' : null,
             ),
@@ -275,16 +286,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 );
               },
             ),
-            Text('Race Track (IL + World circuits)', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Race Track (IL + World circuits)',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white),
+            ),
             const SizedBox(height: 6),
             ListTile(
-              tileColor: Colors.white,
+              tileColor: const Color(0xFF101010),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
-                side: const BorderSide(color: Colors.black, width: 1.1),
+                side: const BorderSide(color: Color(0xFF22D3EE), width: 1.0),
               ),
-              title: Text(_selectedTrack.name, style: const TextStyle(fontWeight: FontWeight.w900)),
-              subtitle: Text('${_selectedTrack.countryCode} | ${_selectedTrack.city} | ${_selectedTrack.lengthKm}km'),
+              title: Text(
+                _selectedTrack.name,
+                style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
+              ),
+              subtitle: Text(
+                '${_selectedTrack.countryCode} | ${_selectedTrack.city} | ${_selectedTrack.lengthKm}km',
+                style: const TextStyle(color: Colors.white70),
+              ),
               trailing: const Icon(Icons.search),
               onTap: _pickTrackFromSearch,
             ),

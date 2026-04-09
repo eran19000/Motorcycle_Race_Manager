@@ -16,45 +16,46 @@ class RaceManagerApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: Colors.grey.shade400,
+        brightness: Brightness.dark,
+        fontFamily: 'Inter',
+        scaffoldBackgroundColor: const Color(0xFF000000),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.black,
-          brightness: Brightness.light,
+          seedColor: const Color(0xFF22D3EE),
+          brightness: Brightness.dark,
         ).copyWith(
-          surface: Colors.white,
-          onSurface: Colors.black,
+          surface: const Color(0xFF0E0E0E),
+          onSurface: Colors.white,
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFD32F2F),
+          backgroundColor: Color(0xFF000000),
           foregroundColor: Colors.white,
           centerTitle: false,
         ),
         navigationBarTheme: NavigationBarThemeData(
-          backgroundColor: const Color(0xFFD32F2F),
-          indicatorColor: const Color(0xFFFFEB3B),
+          backgroundColor: const Color(0xFF000000),
+          indicatorColor: const Color(0x3322D3EE),
           iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
             if (states.contains(WidgetState.selected)) {
-              return const IconThemeData(color: Colors.black);
+              return const IconThemeData(color: Color(0xFF22D3EE));
             }
-            return const IconThemeData(color: Colors.white70);
+            return const IconThemeData(color: Colors.white60);
           }),
           labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
             if (states.contains(WidgetState.selected)) {
               return const TextStyle(
-                color: Colors.black,
+                color: Color(0xFF22D3EE),
                 fontWeight: FontWeight.w900,
               );
             }
             return const TextStyle(
-              color: Colors.white70,
+              color: Colors.white60,
               fontWeight: FontWeight.w700,
             );
           }),
         ),
-        textTheme: ThemeData.light().textTheme.apply(
-              bodyColor: Colors.black,
-              displayColor: Colors.black,
+        textTheme: ThemeData.dark().textTheme.apply(
+              bodyColor: Colors.white,
+              displayColor: Colors.white,
             ).copyWith(
               bodyLarge: const TextStyle(fontWeight: FontWeight.bold),
               bodyMedium: const TextStyle(fontWeight: FontWeight.bold),
@@ -63,14 +64,14 @@ class RaceManagerApp extends StatelessWidget {
               headlineMedium: const TextStyle(fontWeight: FontWeight.bold),
             ),
         chipTheme: const ChipThemeData(
-          side: BorderSide(color: Colors.black, width: 1.3),
+          side: BorderSide(color: Color(0xFF22D3EE), width: 1.0),
         ),
         cardTheme: CardThemeData(
-          color: Colors.white,
-          surfaceTintColor: Colors.white,
+          color: const Color(0xFF111111),
+          surfaceTintColor: const Color(0xFF111111),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: const BorderSide(color: Colors.black, width: 1.1),
+            side: const BorderSide(color: Color(0xFF22D3EE), width: 1.0),
           ),
         ),
         switchTheme: SwitchThemeData(
@@ -85,25 +86,28 @@ class RaceManagerApp extends StatelessWidget {
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
-            backgroundColor: Colors.green.shade700,
-            disabledBackgroundColor: Colors.grey.shade500,
+            backgroundColor: const Color(0xFF16A34A),
+            disabledBackgroundColor: const Color(0xFF3A3A3A),
             foregroundColor: Colors.white,
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.white,
+          helperStyle: const TextStyle(color: Colors.white70),
+          labelStyle: const TextStyle(color: Colors.white),
+          floatingLabelStyle: const TextStyle(color: Color(0xFF22D3EE)),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Colors.black, width: 1.2),
+            borderSide: const BorderSide(color: Color(0xFF22D3EE), width: 1.1),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Colors.black, width: 1.2),
+            borderSide: const BorderSide(color: Color(0xFF22D3EE), width: 1.1),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Colors.black, width: 1.5),
+            borderSide: const BorderSide(color: Color(0xFF22D3EE), width: 1.4),
           ),
         ),
       ),
@@ -132,7 +136,7 @@ class _MobilePreviewFrameState extends State<_MobilePreviewFrame> {
         final useFrame = canUseFrame && _forcePhoneFrame;
         if (!canUseFrame) return widget.child;
         return Scaffold(
-          backgroundColor: Colors.grey.shade400,
+          backgroundColor: const Color(0xFF000000),
           body: Column(
             children: [
               Align(
@@ -159,8 +163,8 @@ class _MobilePreviewFrameState extends State<_MobilePreviewFrame> {
                           height: 860,
                           margin: const EdgeInsets.symmetric(vertical: 16),
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: Colors.black, width: 2),
+                            color: const Color(0xFF0F0F0F),
+                            border: Border.all(color: const Color(0xFF22D3EE), width: 1.2),
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: const [
                               BoxShadow(

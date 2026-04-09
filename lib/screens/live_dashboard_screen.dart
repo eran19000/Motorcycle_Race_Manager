@@ -31,11 +31,11 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
         final invert = data.personalBestSectorTriggered;
         final sessionBest = data.sessionBestLapTriggered;
         final bgColor = sessionBest
-            ? Colors.green
+            ? const Color(0xFF14532D)
             : invert
-                ? Colors.black
-                : Colors.grey.shade300;
-        final fgColor = invert ? Colors.white : Colors.black;
+                ? Colors.white
+                : const Color(0xFF000000);
+        final fgColor = invert ? Colors.black : Colors.white;
 
         return Container(
           color: bgColor,
@@ -79,16 +79,16 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 6),
               _landscapeMode
                   ? Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          flex: 3,
+                          flex: 6,
                           child: _timerView(data, fgColor),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 6),
                         Expanded(
                           flex: 2,
                           child: Wrap(
@@ -105,7 +105,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                       ],
                     )
                   : _timerView(data, fgColor),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               if (!_landscapeMode)
                 Center(
                   child: Text(
@@ -120,7 +120,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                   style: TextStyle(color: fgColor, fontWeight: FontWeight.w900),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
               Wrap(
                 spacing: 18,
                 runSpacing: 8,
@@ -159,11 +159,20 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                 children: [
                   FilledButton(
                     style: FilledButton.styleFrom(
-                      backgroundColor: invert ? Colors.white : Colors.black,
-                      foregroundColor: invert ? Colors.black : Colors.white,
+                      backgroundColor: invert ? Colors.black : Colors.white,
+                      foregroundColor: invert ? Colors.white : Colors.black,
                     ),
-                    onPressed: widget.telemetryService.setFinishLineFromCurrentLocation,
+                    onPressed: () {
+                      widget.telemetryService.setFinishLineFromCurrentLocation();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Finish line updated')),
+                      );
+                    },
                     child: const Text('Set Finish Line'),
+                  ),
+                  FilledButton(
+                    onPressed: () => _openSectorDialog(context),
+                    child: const Text('Set Sectors'),
                   ),
                   Chip(
                     side: BorderSide(color: fgColor),
@@ -213,6 +222,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                   ),
                   FilledButton(
                     onPressed: () async {
+                      final messenger = ScaffoldMessenger.of(context);
                       final prefs = await SharedPreferences.getInstance();
                       final org =
                           prefs.getString('active_rider_organizer_group');
@@ -221,7 +231,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                         riderOrganizerGroupName: org,
                       );
                       if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(content: Text('Session snapshot saved to history')),
                       );
                     },
@@ -231,7 +241,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
               ),
               const SizedBox(height: 10),
               SizedBox(
-                height: 180,
+                height: 120,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: TrackMapWidget(
@@ -272,19 +282,69 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
       precision: _showThousandths ? TimerPrecision.millisecond : TimerPrecision.centisecond,
     );
     final style = _timerPreset == 1
-        ? TextStyle(fontSize: 104, fontWeight: FontWeight.w900, color: fgColor)
+        ? const TextStyle(fontSize: 140, fontWeight: FontWeight.w900, color: Colors.black)
         : _timerPreset == 2
-            ? TextStyle(fontSize: 92, fontWeight: FontWeight.w700, color: fgColor, letterSpacing: 2)
-            : TextStyle(fontSize: 82, fontWeight: FontWeight.w900, color: fgColor);
-    return Center(
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(
-          text,
-          style: style,
-          maxLines: 1,
-          softWrap: false,
+            ? const TextStyle(fontSize: 128, fontWeight: FontWeight.w700, color: Colors.black, letterSpacing: 2)
+            : const TextStyle(fontSize: 116, fontWeight: FontWeight.w900, color: Colors.black);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [BoxShadow(color: Color(0x5522D3EE), blurRadius: 14)],
+      ),
+      child: Center(
+        child: FittedBox(
+          fit: BoxFit.contain,
+          child: Text(
+            text,
+            style: style,
+            maxLines: 1,
+            softWrap: false,
+          ),
         ),
+      ),
+    );
+  }
+
+  Future<void> _openSectorDialog(BuildContext context) async {
+    final targets = widget.telemetryService.sectorSplitTargets;
+    final c1 = TextEditingController(text: targets[0].inSeconds.toString());
+    final c2 = TextEditingController(text: targets[1].inSeconds.toString());
+    final c3 = TextEditingController(text: targets[2].inSeconds.toString());
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Set Sector Split Targets (seconds)'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: c1, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Sector 1 end')),
+            TextField(controller: c2, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Sector 2 end')),
+            TextField(controller: c3, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Sector 3 end')),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              final s1 = int.tryParse(c1.text);
+              final s2 = int.tryParse(c2.text);
+              final s3 = int.tryParse(c3.text);
+              if (s1 == null || s2 == null || s3 == null || s1 <= 0 || s1 >= s2 || s2 >= s3) {
+                return;
+              }
+              widget.telemetryService.setSectorSplitTargets([
+                Duration(seconds: s1),
+                Duration(seconds: s2),
+                Duration(seconds: s3),
+              ]);
+              Navigator.pop(ctx);
+            },
+            child: const Text('Apply'),
+          ),
+        ],
       ),
     );
   }

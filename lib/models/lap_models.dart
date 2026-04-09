@@ -39,9 +39,7 @@ class SessionData {
     );
     var total = Duration.zero;
     for (final sector in bestSectors) {
-      if (sector != null) {
-        total += sector;
-      }
+      total += sector;
     }
     return total;
   }
