@@ -70,7 +70,7 @@ class TelemetryService extends ChangeNotifier {
   }
 
   late final Timer _ticker;
-  DateTime _sessionStart = DateTime.now();
+  final DateTime _sessionStart = DateTime.now();
   DateTime _lapStart = DateTime.now();
   Duration _bestLap = const Duration(hours: 1);
   Duration _idealLap = const Duration(hours: 1);
@@ -489,7 +489,10 @@ class TelemetryService extends ChangeNotifier {
         if (name.contains('racebox') || name.contains('gps')) {
           _externalDevice = item.device;
           await FlutterBluePlus.stopScan();
-          await _externalDevice?.connect(timeout: const Duration(seconds: 5));
+          await _externalDevice?.connect(
+            license: License.free,
+            timeout: const Duration(seconds: 5),
+          );
           // Placeholder NMEA high-frequency stream simulation from BLE bytes.
           _nmeaSub = Stream<List<int>>.periodic(
             const Duration(milliseconds: 100),

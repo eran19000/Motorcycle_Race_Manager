@@ -112,7 +112,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
 
     final position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.bestForNavigation,
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+      ),
     );
     setState(() {
       _gpsStatus =
@@ -267,7 +269,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       paidGroups.isNotEmpty ? paidGroups.first.id : null;
                 }
                 return DropdownButtonFormField<String>(
-                  value: _selectedManagementGroupId,
+                  key: ValueKey(_selectedManagementGroupId),
+                  initialValue: _selectedManagementGroupId,
                   decoration: const InputDecoration(
                     labelText: 'Track-Day Management Group (paid only)',
                   ),

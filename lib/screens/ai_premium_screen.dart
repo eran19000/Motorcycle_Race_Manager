@@ -16,7 +16,7 @@ class _AiPremiumScreenState extends State<AiPremiumScreen> {
   bool _premiumGraphs = false;
   bool _premiumAi = false;
   String _aiResult = 'AI is locked. Activate AI Premium to run Gemini guidance.';
-  List<double> _samples = const [0.1, 0.2, 0.4, 0.5, 0.48, 0.63, 0.7];
+  final List<double> _samples = const [0.1, 0.2, 0.4, 0.5, 0.48, 0.63, 0.7];
 
   @override
   void initState() {

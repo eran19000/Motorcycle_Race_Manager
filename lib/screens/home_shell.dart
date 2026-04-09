@@ -241,7 +241,8 @@ class _HomeShellState extends State<HomeShell> {
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
               child: DropdownButtonFormField<AppLanguage>(
-                value: _language,
+                key: ValueKey(_language),
+                initialValue: _language,
                 decoration: InputDecoration(
                   labelText: tr('שפה', 'Language', 'اللغة'),
                   border: const OutlineInputBorder(),
@@ -249,7 +250,7 @@ class _HomeShellState extends State<HomeShell> {
                 ),
                 items: [
                   DropdownMenuItem(value: AppLanguage.hebrew, child: Text(tr('עברית', 'Hebrew', 'العبرية'))),
-                  DropdownMenuItem(value: AppLanguage.english, child: const Text('English')),
+                  const DropdownMenuItem(value: AppLanguage.english, child: Text('English')),
                   DropdownMenuItem(value: AppLanguage.arabic, child: Text(tr('ערבית', 'Arabic', 'العربية'))),
                 ],
                 onChanged: (value) {
@@ -363,7 +364,8 @@ class _OrganizerAdminPanelState extends State<_OrganizerAdminPanel> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<RacingTrack>(
-              value: _track,
+              key: ValueKey(_track),
+              initialValue: _track,
               decoration: const InputDecoration(labelText: 'Assigned paid track'),
               items: racingTracks
                   .map((t) => DropdownMenuItem(value: t, child: Text(t.name)))
@@ -480,7 +482,8 @@ class _EntrySelector extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             DropdownButtonFormField<AppLanguage>(
-              value: language,
+              key: ValueKey(language),
+              initialValue: language,
               decoration: InputDecoration(
                 labelText: tr('שפה', 'Language', 'اللغة'),
                 border: const OutlineInputBorder(),
@@ -519,40 +522,61 @@ class _EntrySelector extends StatelessWidget {
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: selectedPaidGroup,
-                            decoration: InputDecoration(
-                              labelText: tr('קבוצת מארגן', 'Organizer Group', 'مجموعة المنظم'),
-                              border: const OutlineInputBorder(),
-                            ),
-                            items: paidGroups
-                                .map((name) => DropdownMenuItem(value: name, child: Text(name)))
-                                .toList(),
-                            onChanged: (value) => setLocalState(() => selectedPaidGroup = value),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final groupDropdown = DropdownButtonFormField<String>(
+                          key: ValueKey(selectedPaidGroup),
+                          initialValue: selectedPaidGroup,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: tr('קבוצת מארגן', 'Organizer Group', 'مجموعة المنظم'),
+                            border: const OutlineInputBorder(),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 120,
-                          child: TextField(
-                            controller: organizerPasswordController,
-                            obscureText: true,
-                            decoration: InputDecoration(
-                              labelText: tr('סיסמה', 'Password', 'كلمة المرور'),
-                            ),
+                          items: paidGroups
+                              .map((name) => DropdownMenuItem(value: name, child: Text(name)))
+                              .toList(),
+                          onChanged: (value) => setLocalState(() => selectedPaidGroup = value),
+                        );
+                        final passwordField = TextField(
+                          controller: organizerPasswordController,
+                          obscureText: true,
+                          decoration: InputDecoration(
+                            labelText: tr('סיסמה', 'Password', 'كلمة المرور'),
+                            border: const OutlineInputBorder(),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        FilledButton(
+                        );
+                        final enterButton = FilledButton(
                           onPressed: selectedPaidGroup == null
                               ? null
                               : () => onEnterManager(selectedPaidGroup!),
                           child: Text(tr('כניסה', 'Enter', 'دخول')),
-                        ),
-                      ],
+                        );
+                        if (constraints.maxWidth < 520) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              groupDropdown,
+                              const SizedBox(height: 8),
+                              passwordField,
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: AlignmentDirectional.centerEnd,
+                                child: enterButton,
+                              ),
+                            ],
+                          );
+                        }
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: groupDropdown),
+                            const SizedBox(width: 8),
+                            SizedBox(width: 140, child: passwordField),
+                            const SizedBox(width: 8),
+                            enterButton,
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ],
