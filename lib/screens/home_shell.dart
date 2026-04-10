@@ -470,181 +470,226 @@ class _EntrySelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final landscape = constraints.maxWidth > constraints.maxHeight;
+        final neonBorder = Border.all(color: const Color(0xFF22D3EE), width: 1.2);
+
+        Widget riderPanel = Container(
           padding: const EdgeInsets.all(16),
-          children: [
-            Text(
-              tr('כניסה למערכת', 'System Entry', 'الدخول إلى النظام'),
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<AppLanguage>(
-              key: ValueKey(language),
-              initialValue: language,
-              decoration: InputDecoration(
-                labelText: tr('שפה', 'Language', 'اللغة'),
-                border: const OutlineInputBorder(),
-              ),
-              items: [
-                DropdownMenuItem(value: AppLanguage.hebrew, child: Text(tr('עברית', 'Hebrew', 'العبرية'))),
-                const DropdownMenuItem(value: AppLanguage.english, child: Text('English')),
-                DropdownMenuItem(value: AppLanguage.arabic, child: Text(tr('ערבית', 'Arabic', 'العربية'))),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0A0A0A),
+            borderRadius: BorderRadius.circular(22),
+            border: neonBorder,
+            boxShadow: const [BoxShadow(color: Color(0x5522D3EE), blurRadius: 16)],
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Icon(Icons.sports_motorsports, color: Color(0xFF22D3EE), size: 52),
+                const SizedBox(height: 12),
+                _neonFieldHint(tr('הזן אימייל', 'Enter Email', 'ادخل البريد')),
+                const SizedBox(height: 10),
+                _neonFieldHint(tr('הזן סיסמה', 'Enter Password', 'ادخل كلمة المرور')),
+                const SizedBox(height: 12),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFE6EEF0),
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: onEnterRider,
+                  child: Text(tr('כניסה', 'LOG IN', 'دخول')),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  tr('שכחת סיסמה?', 'Forgot Password?', 'نسيت كلمة المرور؟'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white60, fontWeight: FontWeight.w600),
+                ),
               ],
-              onChanged: (value) {
-                if (value != null) onLanguageChanged(value);
-              },
             ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0C0C0C),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFF22D3EE), width: 1.2),
-                boxShadow: const [BoxShadow(color: Color(0x6622D3EE), blurRadius: 14)],
-              ),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final compact = constraints.maxWidth < 760;
-                  final riderPanel = Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFF22D3EE), width: 1.1),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.sports_motorsports, color: Color(0xFF22D3EE)),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                tr('כניסת רוכב', 'Rider Entry', 'دخول متسابق'),
-                                style: const TextStyle(fontWeight: FontWeight.w900),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          tr(
-                            'רישום + לאפ טיימר + היסטוריה',
-                            'Onboarding + lap timer + history',
-                            'تسجيل + مؤقت لفات + سجل',
-                          ),
-                          style: const TextStyle(color: Colors.white70),
-                        ),
-                        const SizedBox(height: 10),
-                        FilledButton(
-                          onPressed: onEnterRider,
-                          child: Text(tr('כניסה', 'LOG IN', 'دخول')),
-                        ),
-                      ],
-                    ),
-                  );
-                  final organizerPanel = Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFF22D3EE), width: 1.1),
-                    ),
-                    child: Column(
-                      children: [
-                        const Icon(Icons.account_circle_rounded, color: Color(0xFF22D3EE), size: 54),
-                        const SizedBox(height: 8),
-                        Text(
-                          tr('כניסת מארגן יום מסלול', 'Organizer Entry', 'دخول منظم اليوم'),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontWeight: FontWeight.w900),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          tr(
-                            'מסלול וקבוצות בתשלום ליום שנבחר',
-                            'Paid track/day organizer access',
-                            'وصول منظم ليوم/مسار مدفوع',
-                          ),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.white70, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  );
-                  if (compact) {
-                    return Column(
-                      children: [
-                        riderPanel,
-                        const SizedBox(height: 10),
-                        organizerPanel,
-                        const SizedBox(height: 10),
-                        _OrganizerLoginForm(
-                          tr: tr,
-                          paidGroups: paidGroups,
-                          organizerPasswordController: organizerPasswordController,
-                          onEnterManager: onEnterManager,
-                        ),
-                      ],
-                    );
-                  }
-                  return Column(
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: riderPanel),
-                          const SizedBox(width: 10),
-                          Expanded(child: organizerPanel),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      _OrganizerLoginForm(
-                        tr: tr,
-                        paidGroups: paidGroups,
-                        organizerPasswordController: organizerPasswordController,
-                        onEnterManager: onEnterManager,
-                      ),
-                    ],
-                  );
-                },
-              ),
+          ),
+        );
+
+        Widget organizerPanel = Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0A0A0A),
+            borderRadius: BorderRadius.circular(22),
+            border: neonBorder,
+            boxShadow: const [BoxShadow(color: Color(0x5522D3EE), blurRadius: 16)],
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Icon(Icons.account_circle_rounded, color: Color(0xFF22D3EE), size: 64),
+                const SizedBox(height: 8),
+                Text(
+                  tr('כניסת מארגן יום מסלול', 'Track-Day Organizer', 'دخول منظم يوم الحلبة'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 24),
+                ),
+                const SizedBox(height: 8),
+                _OrganizerLoginForm(
+                  tr: tr,
+                  paidGroups: paidGroups,
+                  organizerPasswordController: organizerPasswordController,
+                  onEnterManager: onEnterManager,
+                ),
+                const SizedBox(height: 10),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF8AF7FF).withValues(alpha: 0.7),
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () => onEnterOwner(ownerPinController.text.trim()),
+                  child: Text(tr('כניסת אדמין', 'Admin Login', 'دخول المدير')),
+                ),
+              ],
             ),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
+          ),
+        );
+
+        return Container(
+          color: Colors.black,
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (constraints.maxWidth < 520) ...[
+                Text(
+                  tr('כניסה למערכת', 'System Entry', 'الدخول للنظام'),
+                  style: TextStyle(
+                    fontSize: (constraints.maxWidth * 0.09).clamp(24.0, 40.0),
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: SizedBox(
+                    width: 170,
+                    child: DropdownButtonFormField<AppLanguage>(
+                      key: ValueKey(language),
+                      initialValue: language,
+                      dropdownColor: const Color(0xFF101010),
+                      style: const TextStyle(color: Colors.white),
+                      decoration: _neonDecoration(tr('שפה', 'Language', 'اللغة')),
+                      items: [
+                        DropdownMenuItem(value: AppLanguage.hebrew, child: Text(tr('עברית', 'Hebrew', 'العبرية'))),
+                        const DropdownMenuItem(value: AppLanguage.english, child: Text('English')),
+                        DropdownMenuItem(value: AppLanguage.arabic, child: Text(tr('ערבית', 'Arabic', 'العربية'))),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) onLanguageChanged(value);
+                      },
+                    ),
+                  ),
+                ),
+              ] else
+                Row(
                   children: [
-                    const Icon(Icons.workspace_premium),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextField(
-                        controller: ownerPinController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: tr('קוד אדמין (777)', 'Admin PIN (777)', 'رمز المدير (777)'),
-                          border: const OutlineInputBorder(),
-                        ),
+                    Text(
+                      tr('כניסה למערכת', 'System Entry', 'الدخول للنظام'),
+                      style: TextStyle(
+                        fontSize: (constraints.maxWidth * 0.09).clamp(24.0, 46.0),
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    FilledButton(
-                      onPressed: () => onEnterOwner(ownerPinController.text.trim()),
-                      child: Text(tr('כניסה', 'Enter', 'دخول')),
+                    const Spacer(),
+                    SizedBox(
+                      width: 170,
+                      child: DropdownButtonFormField<AppLanguage>(
+                        key: ValueKey(language),
+                        initialValue: language,
+                        dropdownColor: const Color(0xFF101010),
+                        style: const TextStyle(color: Colors.white),
+                        decoration: _neonDecoration(tr('שפה', 'Language', 'اللغة')),
+                        items: [
+                          DropdownMenuItem(value: AppLanguage.hebrew, child: Text(tr('עברית', 'Hebrew', 'العبرية'))),
+                          const DropdownMenuItem(value: AppLanguage.english, child: Text('English')),
+                          DropdownMenuItem(value: AppLanguage.arabic, child: Text(tr('ערבית', 'Arabic', 'العربية'))),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) onLanguageChanged(value);
+                        },
+                      ),
                     ),
                   ],
                 ),
+              const SizedBox(height: 14),
+              Expanded(
+                child: landscape
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: riderPanel),
+                          const SizedBox(width: 14),
+                          Expanded(child: organizerPanel),
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          Expanded(child: riderPanel),
+                          const SizedBox(height: 14),
+                          Expanded(child: organizerPanel),
+                        ],
+                      ),
               ),
-            ),
-            if (error.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(error, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w900)),
-              ),
-          ],
+              if (error.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    error,
+                    style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w900),
+                  ),
+                ),
+            ],
+          ),
         );
+      },
+    );
+  }
+
+  static InputDecoration _neonDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: const Color(0xFF0F0F0F),
+      labelStyle: const TextStyle(color: Color(0xFF7EE7F2)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFF22D3EE), width: 1.2),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFF22D3EE), width: 1.5),
+      ),
+    );
+  }
+
+  Widget _neonFieldHint(String hint) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F0F0F),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF22D3EE), width: 1.2),
+        boxShadow: const [BoxShadow(color: Color(0x5522D3EE), blurRadius: 10)],
+      ),
+      child: Text(
+        hint,
+        style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w600),
+      ),
+    );
   }
 }
 
@@ -697,9 +742,10 @@ class _OrganizerLoginFormState extends State<_OrganizerLoginForm> {
           key: ValueKey(_selectedPaidGroup),
           initialValue: _selectedPaidGroup,
           isExpanded: true,
-          decoration: InputDecoration(
-            labelText: widget.tr('קבוצת מארגן', 'Organizer Group', 'مجموعة المنظم'),
-            border: const OutlineInputBorder(),
+          dropdownColor: const Color(0xFF101010),
+          style: const TextStyle(color: Colors.white),
+          decoration: _EntrySelector._neonDecoration(
+            widget.tr('קבוצת מארגן', 'Organizer Group', 'مجموعة المنظم'),
           ),
           items: widget.paidGroups
               .map((name) => DropdownMenuItem(value: name, child: Text(name)))
@@ -709,9 +755,9 @@ class _OrganizerLoginFormState extends State<_OrganizerLoginForm> {
         final passwordField = TextField(
           controller: widget.organizerPasswordController,
           obscureText: true,
-          decoration: InputDecoration(
-            labelText: widget.tr('סיסמה', 'Password', 'كلمة المرور'),
-            border: const OutlineInputBorder(),
+          style: const TextStyle(color: Colors.white),
+          decoration: _EntrySelector._neonDecoration(
+            widget.tr('סיסמה', 'Password', 'كلمة المرور'),
           ),
         );
         final enterButton = FilledButton(
