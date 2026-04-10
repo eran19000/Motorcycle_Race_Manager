@@ -15,6 +15,7 @@ import '../models/rider.dart';
 class TelemetrySnapshot {
   TelemetrySnapshot({
     required this.elapsed,
+    required this.lapElapsed,
     required this.leanAngleDeg,
     required this.speedKmh,
     required this.maxSpeedKmh,
@@ -30,9 +31,16 @@ class TelemetrySnapshot {
     required this.selectedTrack,
     required this.demoMode,
     required this.telemetryTrail,
+    required this.gForce,
+    required this.gyroAlive,
+    required this.accelerometerAlive,
+    required this.internalGpsAlive,
+    required this.externalGpsAlive,
   });
 
   final Duration elapsed;
+  /// Time since the current lap started (lap timer).
+  final Duration lapElapsed;
   final double leanAngleDeg;
   final double speedKmh;
   final double maxSpeedKmh;
@@ -48,6 +56,11 @@ class TelemetrySnapshot {
   final RacingTrack selectedTrack;
   final bool demoMode;
   final List<TelemetryTrailPoint> telemetryTrail;
+  final double gForce;
+  final bool gyroAlive;
+  final bool accelerometerAlive;
+  final bool internalGpsAlive;
+  final bool externalGpsAlive;
 }
 
 class TelemetryTrailPoint {
@@ -102,6 +115,9 @@ class TelemetryService extends ChangeNotifier {
   StreamSubscription<List<int>>? _nmeaSub;
   BluetoothDevice? _externalDevice;
   DateTime? _lastGpsUpdateAt;
+  DateTime? _lastGyroAt;
+  DateTime? _lastAccAt;
+  DateTime? _lastNmeaAt;
   final List<Duration> _sectorSplitTargets = [
     const Duration(seconds: 28),
     const Duration(seconds: 58),
@@ -159,6 +175,7 @@ class TelemetryService extends ChangeNotifier {
 
   TelemetrySnapshot get snapshot => TelemetrySnapshot(
         elapsed: DateTime.now().difference(_sessionStart),
+        lapElapsed: DateTime.now().difference(_lapStart),
         leanAngleDeg: _leanAngle,
         speedKmh: _speed,
         maxSpeedKmh: _maxSpeed,
@@ -174,14 +191,29 @@ class TelemetryService extends ChangeNotifier {
         selectedTrack: _selectedTrack,
         demoMode: _demoMode,
         telemetryTrail: List<TelemetryTrailPoint>.unmodifiable(_telemetryTrail),
+        gForce: _gForce,
+        gyroAlive: _isFresh(_lastGyroAt, const Duration(seconds: 2)),
+        accelerometerAlive: _isFresh(_lastAccAt, const Duration(seconds: 2)),
+        internalGpsAlive:
+            _demoMode || _isFresh(_lastGpsUpdateAt, const Duration(seconds: 4)),
+        externalGpsAlive: !_useExternalGps ||
+            (_externalDevice != null &&
+                _isFresh(_lastNmeaAt, const Duration(seconds: 2))),
       );
+
+  bool _isFresh(DateTime? ts, Duration threshold) {
+    if (ts == null) return false;
+    return DateTime.now().difference(ts) <= threshold;
+  }
 
   Future<void> _init() async {
     _gyroSub = gyroscopeEventStream().listen((event) {
+      _lastGyroAt = DateTime.now();
       _leanAngle = (_leanAngle + event.y * 1.4).clamp(-62.0, 62.0);
       notifyListeners();
     });
     _accSub = accelerometerEventStream().listen((event) {
+      _lastAccAt = DateTime.now();
       final magnitude = sqrt(
         event.x * event.x + event.y * event.y + event.z * event.z,
       );
@@ -315,8 +347,12 @@ class TelemetryService extends ChangeNotifier {
 
   void _simulateTelemetry() {
     final t = DateTime.now().millisecondsSinceEpoch / 1000.0;
+    _lastGyroAt = DateTime.now();
+    _lastAccAt = DateTime.now();
+    _lastGpsUpdateAt = DateTime.now();
     _leanAngle = 47 * sin(t * 0.9);
     _speed = 155 + 42 * sin(t * 0.6) + 18 * sin(t * 1.6);
+    _gForce = (1.1 + 0.9 * sin(t * 2.0)).clamp(0.0, 4.0);
     if (_speed > _maxSpeed) {
       _maxSpeed = _speed;
     }
@@ -517,6 +553,7 @@ class TelemetryService extends ChangeNotifier {
   void _parseNmeaPayload(List<int> bytes) {
     final sentence = utf8.decode(bytes, allowMalformed: true);
     if (!sentence.contains('GPRMC')) return;
+    _lastNmeaAt = DateTime.now();
     // Placeholder: when external stream is active we bias updates as high-frequency source.
     _speed = max(_speed, 22 + (_gForce * 5));
     notifyListeners();

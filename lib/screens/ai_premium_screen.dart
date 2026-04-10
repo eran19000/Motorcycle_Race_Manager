@@ -48,24 +48,122 @@ class _AiPremiumScreenState extends State<AiPremiumScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Widget menuButton(IconData icon, String text, {bool premium = false}) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0D0D0D),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFD080FF)),
+          boxShadow: const [BoxShadow(color: Color(0x66D080FF), blurRadius: 10)],
+        ),
+        child: ListTile(
+          leading: Icon(icon, color: const Color(0xFFD080FF)),
+          title: Text(text, style: const TextStyle(fontWeight: FontWeight.w800)),
+          trailing: premium
+              ? Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFACC15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Text('PREMIUM', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 10)),
+                )
+              : null,
+        ),
+      );
+    }
+
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF111111), Color(0xFF1A1A1A)],
-            ),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF22D3EE)),
-          ),
-          child: const Text(
-            'AI / Premium / Video Analysis',
-            style: TextStyle(fontWeight: FontWeight.w900),
-          ),
+        const Text(
+          'AI / Premium Garage',
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
         ),
         const SizedBox(height: 10),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 900;
+            final left = Column(
+              children: [
+                menuButton(Icons.emoji_events_outlined, 'Community Best Laps'),
+                menuButton(Icons.auto_awesome, 'AI Analysis', premium: true),
+                menuButton(Icons.history, 'Lap History'),
+                menuButton(Icons.storage_rounded, 'Track Database'),
+              ],
+            );
+            final mid = Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D0D0D),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFD080FF)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text('AI Analysis:', style: TextStyle(fontWeight: FontWeight.w900)),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFACC15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Text('PREMIUM', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 10)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(height: 130, child: CustomPaint(painter: _SimpleLinePainter(_samples), child: const SizedBox.expand())),
+                  const SizedBox(height: 8),
+                  const Text('Lean Angle:', style: TextStyle(fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 6),
+                  SizedBox(height: 130, child: CustomPaint(painter: _SimpleLinePainter(_samples.reversed.toList()), child: const SizedBox.expand())),
+                ],
+              ),
+            );
+            final right = Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D0D0D),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFFFB050)),
+                boxShadow: const [BoxShadow(color: Color(0x55FFB050), blurRadius: 14)],
+              ),
+              child: const Text(
+                'Graph\\n\\nVideo Overlays (Premium)\\n\\nGemini AI Coaching\\n\\nFull-Race Stats',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, height: 1.25),
+              ),
+            );
+
+            if (compact) {
+              return Column(
+                children: [
+                  left,
+                  const SizedBox(height: 10),
+                  mid,
+                  const SizedBox(height: 10),
+                  right,
+                ],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 3, child: left),
+                const SizedBox(width: 10),
+                Expanded(flex: 4, child: mid),
+                const SizedBox(width: 10),
+                Expanded(flex: 3, child: right),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 12),
         ListTile(
           leading: const Icon(Icons.workspace_premium),
           title: const Text('Premium Graphs Access'),
@@ -78,7 +176,6 @@ class _AiPremiumScreenState extends State<AiPremiumScreen> {
             },
           ),
         ),
-        const Divider(),
         ListTile(
           leading: const Icon(Icons.auto_awesome),
           title: const Text('Premium AI Coach (Gemini)'),
@@ -91,7 +188,6 @@ class _AiPremiumScreenState extends State<AiPremiumScreen> {
             },
           ),
         ),
-        const Divider(),
         TextField(
           controller: _videoController,
           decoration: const InputDecoration(
@@ -148,24 +244,6 @@ class _AiPremiumScreenState extends State<AiPremiumScreen> {
         ),
         const SizedBox(height: 8),
         Text(_aiResult),
-        const SizedBox(height: 12),
-        if (_premiumGraphs) ...[
-          const Text('Premium Graph Preview'),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 160,
-            child: CustomPaint(
-              painter: _SimpleLinePainter(_samples),
-              child: const SizedBox.expand(),
-            ),
-          ),
-        ] else ...[
-          const ListTile(
-            leading: Icon(Icons.lock_outline),
-            title: Text('Graphs are locked'),
-            subtitle: Text('Enable Premium Graphs to view telemetry charts.'),
-          ),
-        ],
       ],
     );
   }

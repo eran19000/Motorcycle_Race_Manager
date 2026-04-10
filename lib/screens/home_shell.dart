@@ -470,10 +470,7 @@ class _EntrySelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String? selectedPaidGroup = paidGroups.isNotEmpty ? paidGroups.first : null;
-    return StatefulBuilder(
-      builder: (context, setLocalState) {
-        return ListView(
+    return ListView(
           padding: const EdgeInsets.all(16),
           children: [
             Text(
@@ -498,88 +495,121 @@ class _EntrySelector extends StatelessWidget {
               },
             ),
             const SizedBox(height: 16),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.sports_motorsports),
-                title: Text(tr('כניסת רוכב', 'Rider Entry', 'دخول متسابق')),
-                subtitle: Text(tr('רישום + לאפ טיימר + היסטוריה', 'Onboarding + lap timer + history', 'تسجيل + مؤقت لفات + سجل')),
-                trailing: FilledButton(onPressed: onEnterRider, child: Text(tr('כניסה', 'Enter', 'دخول'))),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0C0C0C),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFF22D3EE), width: 1.2),
+                boxShadow: const [BoxShadow(color: Color(0x6622D3EE), blurRadius: 14)],
               ),
-            ),
-            Card(
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.shield),
-                    title: Text(tr('כניסת מארגן יום מסלול', 'Organizer Entry', 'دخول منظم اليوم')),
-                    subtitle: Text(
-                      tr(
-                        'לאחר כניסה: ישר ליום ולמסלול שלך בלבד — קבוצות, מפה וזמנים.',
-                        'After login: straight to your paid track day — groups, map, and lap data.',
-                        'بعد الدخول: مباشرة إلى يومك ومسارك — المجموعات والخريطة والأزمنة.',
-                      ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final compact = constraints.maxWidth < 760;
+                  final riderPanel = Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFF22D3EE), width: 1.1),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final groupDropdown = DropdownButtonFormField<String>(
-                          key: ValueKey(selectedPaidGroup),
-                          initialValue: selectedPaidGroup,
-                          isExpanded: true,
-                          decoration: InputDecoration(
-                            labelText: tr('קבוצת מארגן', 'Organizer Group', 'مجموعة المنظم'),
-                            border: const OutlineInputBorder(),
-                          ),
-                          items: paidGroups
-                              .map((name) => DropdownMenuItem(value: name, child: Text(name)))
-                              .toList(),
-                          onChanged: (value) => setLocalState(() => selectedPaidGroup = value),
-                        );
-                        final passwordField = TextField(
-                          controller: organizerPasswordController,
-                          obscureText: true,
-                          decoration: InputDecoration(
-                            labelText: tr('סיסמה', 'Password', 'كلمة المرور'),
-                            border: const OutlineInputBorder(),
-                          ),
-                        );
-                        final enterButton = FilledButton(
-                          onPressed: selectedPaidGroup == null
-                              ? null
-                              : () => onEnterManager(selectedPaidGroup!),
-                          child: Text(tr('כניסה', 'Enter', 'دخول')),
-                        );
-                        if (constraints.maxWidth < 520) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              groupDropdown,
-                              const SizedBox(height: 8),
-                              passwordField,
-                              const SizedBox(height: 8),
-                              Align(
-                                alignment: AlignmentDirectional.centerEnd,
-                                child: enterButton,
-                              ),
-                            ],
-                          );
-                        }
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
                           children: [
-                            Expanded(child: groupDropdown),
+                            const Icon(Icons.sports_motorsports, color: Color(0xFF22D3EE)),
                             const SizedBox(width: 8),
-                            SizedBox(width: 140, child: passwordField),
-                            const SizedBox(width: 8),
-                            enterButton,
+                            Expanded(
+                              child: Text(
+                                tr('כניסת רוכב', 'Rider Entry', 'دخول متسابق'),
+                                style: const TextStyle(fontWeight: FontWeight.w900),
+                              ),
+                            ),
                           ],
-                        );
-                      },
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          tr(
+                            'רישום + לאפ טיימר + היסטוריה',
+                            'Onboarding + lap timer + history',
+                            'تسجيل + مؤقت لفات + سجل',
+                          ),
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                        const SizedBox(height: 10),
+                        FilledButton(
+                          onPressed: onEnterRider,
+                          child: Text(tr('כניסה', 'LOG IN', 'دخول')),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                  );
+                  final organizerPanel = Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFF22D3EE), width: 1.1),
+                    ),
+                    child: Column(
+                      children: [
+                        const Icon(Icons.account_circle_rounded, color: Color(0xFF22D3EE), size: 54),
+                        const SizedBox(height: 8),
+                        Text(
+                          tr('כניסת מארגן יום מסלול', 'Organizer Entry', 'دخول منظم اليوم'),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          tr(
+                            'מסלול וקבוצות בתשלום ליום שנבחר',
+                            'Paid track/day organizer access',
+                            'وصول منظم ليوم/مسار مدفوع',
+                          ),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (compact) {
+                    return Column(
+                      children: [
+                        riderPanel,
+                        const SizedBox(height: 10),
+                        organizerPanel,
+                        const SizedBox(height: 10),
+                        _OrganizerLoginForm(
+                          tr: tr,
+                          paidGroups: paidGroups,
+                          organizerPasswordController: organizerPasswordController,
+                          onEnterManager: onEnterManager,
+                        ),
+                      ],
+                    );
+                  }
+                  return Column(
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: riderPanel),
+                          const SizedBox(width: 10),
+                          Expanded(child: organizerPanel),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      _OrganizerLoginForm(
+                        tr: tr,
+                        paidGroups: paidGroups,
+                        organizerPasswordController: organizerPasswordController,
+                        onEnterManager: onEnterManager,
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
             Card(
@@ -613,6 +643,103 @@ class _EntrySelector extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(error, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w900)),
               ),
+          ],
+        );
+  }
+}
+
+class _OrganizerLoginForm extends StatefulWidget {
+  const _OrganizerLoginForm({
+    required this.tr,
+    required this.paidGroups,
+    required this.organizerPasswordController,
+    required this.onEnterManager,
+  });
+
+  final String Function(String, String, String) tr;
+  final List<String> paidGroups;
+  final TextEditingController organizerPasswordController;
+  final ValueChanged<String> onEnterManager;
+
+  @override
+  State<_OrganizerLoginForm> createState() => _OrganizerLoginFormState();
+}
+
+class _OrganizerLoginFormState extends State<_OrganizerLoginForm> {
+  String? _selectedPaidGroup;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.paidGroups.isNotEmpty) {
+      _selectedPaidGroup = widget.paidGroups.first;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _OrganizerLoginForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_selectedPaidGroup != null &&
+        !widget.paidGroups.contains(_selectedPaidGroup)) {
+      _selectedPaidGroup =
+          widget.paidGroups.isNotEmpty ? widget.paidGroups.first : null;
+    }
+    if (_selectedPaidGroup == null && widget.paidGroups.isNotEmpty) {
+      _selectedPaidGroup = widget.paidGroups.first;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final groupDropdown = DropdownButtonFormField<String>(
+          key: ValueKey(_selectedPaidGroup),
+          initialValue: _selectedPaidGroup,
+          isExpanded: true,
+          decoration: InputDecoration(
+            labelText: widget.tr('קבוצת מארגן', 'Organizer Group', 'مجموعة المنظم'),
+            border: const OutlineInputBorder(),
+          ),
+          items: widget.paidGroups
+              .map((name) => DropdownMenuItem(value: name, child: Text(name)))
+              .toList(),
+          onChanged: (value) => setState(() => _selectedPaidGroup = value),
+        );
+        final passwordField = TextField(
+          controller: widget.organizerPasswordController,
+          obscureText: true,
+          decoration: InputDecoration(
+            labelText: widget.tr('סיסמה', 'Password', 'كلمة المرور'),
+            border: const OutlineInputBorder(),
+          ),
+        );
+        final enterButton = FilledButton(
+          onPressed: _selectedPaidGroup == null
+              ? null
+              : () => widget.onEnterManager(_selectedPaidGroup!),
+          child: Text(widget.tr('כניסה', 'LOG IN', 'دخول')),
+        );
+        if (constraints.maxWidth < 520) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              groupDropdown,
+              const SizedBox(height: 8),
+              passwordField,
+              const SizedBox(height: 8),
+              Align(alignment: AlignmentDirectional.centerEnd, child: enterButton),
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: groupDropdown),
+            const SizedBox(width: 8),
+            SizedBox(width: 180, child: passwordField),
+            const SizedBox(width: 8),
+            enterButton,
           ],
         );
       },
