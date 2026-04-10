@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../config/gemini_api_resolver.dart';
+import '../services/gemini_coaching_service.dart';
+import '../services/telemetry_service.dart';
+import '../theme/race_input_theme.dart';
+
 class AiPremiumScreen extends StatefulWidget {
-  const AiPremiumScreen({super.key});
+  const AiPremiumScreen({super.key, required this.telemetryService});
+
+  final TelemetryService telemetryService;
 
   @override
   State<AiPremiumScreen> createState() => _AiPremiumScreenState();
@@ -13,9 +20,13 @@ class _AiPremiumScreenState extends State<AiPremiumScreen> {
   final _lapController = TextEditingController();
   final _aiPromptController =
       TextEditingController(text: 'Analyze my racing line and braking points');
+  final _geminiKeyController = TextEditingController();
+  bool _obscureGeminiKey = true;
   bool _premiumGraphs = false;
   bool _premiumAi = false;
   String _aiResult = 'AI is locked. Activate AI Premium to run Gemini guidance.';
+  String _coachInsights = '';
+  bool _coachLoading = false;
   final List<double> _samples = const [0.1, 0.2, 0.4, 0.5, 0.48, 0.63, 0.7];
 
   @override
@@ -26,10 +37,12 @@ class _AiPremiumScreenState extends State<AiPremiumScreen> {
 
   Future<void> _loadPremiumState() async {
     final prefs = await SharedPreferences.getInstance();
+    final storedKey = prefs.getString(prefsKeyGeminiApi) ?? '';
     if (!mounted) return;
     setState(() {
       _premiumGraphs = prefs.getBool('premium_graphs') ?? false;
       _premiumAi = prefs.getBool('premium_ai') ?? false;
+      if (storedKey.isNotEmpty) _geminiKeyController.text = storedKey;
     });
   }
 
@@ -43,7 +56,49 @@ class _AiPremiumScreenState extends State<AiPremiumScreen> {
     _videoController.dispose();
     _lapController.dispose();
     _aiPromptController.dispose();
+    _geminiKeyController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveGeminiKey() async {
+    await GeminiApiResolver.saveUserKey(_geminiKeyController.text);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Gemini API key saved on this device')),
+    );
+  }
+
+  Future<void> _clearGeminiKey() async {
+    await GeminiApiResolver.clearUserKey();
+    _geminiKeyController.clear();
+    if (!mounted) return;
+    setState(() {});
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Gemini API key removed from this device')),
+    );
+  }
+
+  Future<void> _runGeminiCoach() async {
+    if (!_premiumAi) {
+      setState(() {
+        _coachInsights = 'Enable Premium AI Coach above to request insights.';
+      });
+      return;
+    }
+    setState(() {
+      _coachLoading = true;
+      _coachInsights = '';
+    });
+    final snap = widget.telemetryService.snapshot;
+    final text = await GeminiCoachingService.fetchCoachInsights(
+      snapshot: snap,
+      extraUserNotes: _aiPromptController.text,
+    );
+    if (!mounted) return;
+    setState(() {
+      _coachLoading = false;
+      _coachInsights = text;
+    });
   }
 
   @override
@@ -188,20 +243,60 @@ class _AiPremiumScreenState extends State<AiPremiumScreen> {
             },
           ),
         ),
+        const SizedBox(height: 8),
+        Text(
+          'Gemini API key',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Stored only on this device (SharedPreferences). Prefer --dart-define=GEMINI_API_KEY=... for release builds. '
+          'Restrict your key in Google AI Studio (app package / SHA-1) and rotate it if it was ever shared.',
+          style: TextStyle(fontSize: 12, color: Colors.white70),
+        ),
+        const SizedBox(height: 8),
         TextField(
-          controller: _videoController,
-          decoration: const InputDecoration(
-            labelText: 'Video path / URL',
-            helperText: 'Attach a video to a specific lap for overlay analysis',
+          controller: _geminiKeyController,
+          obscureText: _obscureGeminiKey,
+          style: RaceInputTheme.typingStyle,
+          decoration: InputDecoration(
+            hintText: 'Paste API key (not committed to git)',
+            suffixIcon: IconButton(
+              icon: Icon(_obscureGeminiKey ? Icons.visibility : Icons.visibility_off),
+              onPressed: () => setState(() => _obscureGeminiKey = !_obscureGeminiKey),
+            ),
           ),
         ),
         const SizedBox(height: 8),
+        Row(
+          children: [
+            FilledButton(onPressed: _saveGeminiKey, child: const Text('Save key')),
+            const SizedBox(width: 10),
+            OutlinedButton(onPressed: _clearGeminiKey, child: const Text('Clear key')),
+          ],
+        ),
+        const SizedBox(height: 20),
+        TextField(
+          controller: _videoController,
+          style: RaceInputTheme.typingStyle,
+          decoration: const InputDecoration(
+            hintText: 'Video path / URL',
+            helperText: 'Attach a video to a specific lap for overlay analysis',
+            helperMaxLines: 3,
+            errorMaxLines: 4,
+          ),
+        ),
+        const SizedBox(height: 20),
         TextField(
           controller: _lapController,
-          decoration: const InputDecoration(labelText: 'Related lap number'),
+          style: RaceInputTheme.typingStyle,
+          decoration: const InputDecoration(
+            hintText: 'Related lap number',
+            errorMaxLines: 4,
+          ),
           keyboardType: TextInputType.number,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 16),
         FilledButton.icon(
           onPressed: () {
             final lap = _lapController.text.trim();
@@ -223,9 +318,14 @@ class _AiPremiumScreenState extends State<AiPremiumScreen> {
         TextField(
           controller: _aiPromptController,
           maxLines: 3,
-          decoration: const InputDecoration(labelText: 'AI prompt'),
+          style: RaceInputTheme.typingStyle,
+          decoration: const InputDecoration(
+            hintText: 'AI prompt',
+            errorMaxLines: 4,
+            alignLabelWithHint: true,
+          ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 16),
         FilledButton.icon(
           onPressed: () {
             if (!_premiumAi) {
@@ -244,6 +344,60 @@ class _AiPremiumScreenState extends State<AiPremiumScreen> {
         ),
         const SizedBox(height: 8),
         Text(_aiResult),
+        const SizedBox(height: 24),
+        Text(
+          'AI Coach Insights (Gemini)',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 6),
+        AnimatedBuilder(
+          animation: widget.telemetryService,
+          builder: (context, _) {
+            final d = widget.telemetryService.snapshot;
+            return Text(
+              'Live payload: ${d.selectedTrack.name} · best lap · max ${d.maxSpeedKmh.toStringAsFixed(0)} km/h · '
+              'peak lean ${d.sessionPeakLeanAbsDeg.toStringAsFixed(0)}° · sectors ms ${d.bestSectorTimesMs}',
+              style: const TextStyle(fontSize: 11, color: Colors.white54),
+            );
+          },
+        ),
+        const SizedBox(height: 10),
+        FilledButton(
+          onPressed: _coachLoading ? null : _runGeminiCoach,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_coachLoading) ...[
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                ),
+                const SizedBox(width: 10),
+              ] else ...[
+                const Icon(Icons.sports_motorsports),
+                const SizedBox(width: 8),
+              ],
+              Text(_coachLoading ? 'Contacting Gemini…' : 'Get AI Coach Insights'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF121212),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF38BDF8)),
+          ),
+          child: SelectableText(
+            _coachInsights.isEmpty
+                ? 'Tap “Get AI Coach Insights” to send your current session stats (track, best lap, speed, lean, sectors) to Gemini.'
+                : _coachInsights,
+            style: const TextStyle(height: 1.35, fontSize: 14),
+          ),
+        ),
       ],
     );
   }

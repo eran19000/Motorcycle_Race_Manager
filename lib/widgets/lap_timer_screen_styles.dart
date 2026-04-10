@@ -20,6 +20,12 @@ abstract final class LapTimerPalette {
   static const Color neonYellow = Color(0xFFFACC15);
   static const Color neonBlue = Color(0xFF38BDF8);
   static const Color panel = Color(0xFF0E0E0E);
+
+  /// LIVE team board mockup (high-viz neon on OLED black).
+  static const Color liveCyan = Color(0xFF00E8FF);
+  static const Color livePurple = Color(0xFFBF00FF);
+  static const Color liveGreen = Color(0xFF39FF14);
+  static const Color liveOrange = Color(0xFFFFAD00);
 }
 
 class LapTimerScreenStyles {
@@ -276,46 +282,83 @@ class LapTimerScreenStyles {
       ),
       ...?extraShadow,
     ];
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: glow,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (topLabel != null) ...[
-            Text(
-              topLabel.toUpperCase(),
-              style: const TextStyle(
-                color: Colors.black54,
-                fontWeight: FontWeight.w800,
-                fontSize: 10,
-                letterSpacing: 1,
-              ),
-            ),
-            const SizedBox(height: 6),
-          ],
-          FittedBox(
-            fit: BoxFit.contain,
-            child: Text(
-              text,
-              maxLines: 1,
-              softWrap: false,
-              style: const TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.w900,
-                fontSize: 88,
-                height: 1,
-                letterSpacing: -1,
-              ),
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final portraitDevice =
+            MediaQuery.orientationOf(context) == Orientation.portrait;
+        final cellLandscape = constraints.maxWidth > constraints.maxHeight;
+        final base = cellLandscape ? constraints.maxHeight : constraints.maxWidth;
+        final timerFont =
+            (base * (cellLandscape ? 0.64 : 0.28)).clamp(64.0, 198.0);
+
+        final timeWidget = portraitDevice
+            ? SizedBox(
+                width: double.infinity,
+                child: FittedBox(
+                  fit: BoxFit.fitWidth,
+                  alignment: Alignment.center,
+                  child: Text(
+                    text,
+                    maxLines: 1,
+                    softWrap: false,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 512,
+                      height: 1,
+                      letterSpacing: -2,
+                    ),
+                  ),
+                ),
+              )
+            : FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  text,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w900,
+                    fontSize: timerFont,
+                    height: 1,
+                    letterSpacing: -1,
+                  ),
+                ),
+              );
+
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(
+            horizontal: portraitDevice ? 4 : (cellLandscape ? 8 : 12),
+            vertical: portraitDevice ? 10 : (cellLandscape ? 10 : 14),
           ),
-        ],
-      ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: glow,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (topLabel != null) ...[
+                Text(
+                  topLabel.toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.black54,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 10,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 6),
+              ],
+              timeWidget,
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -372,56 +415,75 @@ class LapTimerScreenStyles {
     final lapStr = '${data.currentLap}';
     final time = _lapTime(data, showThousandths);
     final best = _best(data, showThousandths);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return OrientationBuilder(
+      builder: (context, orientation) {
+        final portrait = orientation == Orientation.portrait;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(flex: 3, child: _brandTitle()),
-            Expanded(
-              flex: 4,
-              child: _neonTile(
-                neon: LapTimerPalette.neonPurple,
-                label: 'SESSION BEST:',
-                value: best,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              flex: 3,
-              child: _neonTile(
-                neon: LapTimerPalette.neonOrange,
-                label: 'LEAN ANGLE:',
-                value: _lean(data),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                flex: 2,
-                child: _lapGradientTile(lapStr),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 5,
-                child: Align(
-                  alignment: Alignment.center,
-                  child: _mainWhiteTimer(
-                    text: time,
-                    sessionBest: sessionBest,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 3, child: _brandTitle()),
+                Expanded(
+                  flex: 4,
+                  child: _neonTile(
+                    neon: LapTimerPalette.neonPurple,
+                    label: 'SESSION BEST:',
+                    value: best,
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ],
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 3,
+                  child: _neonTile(
+                    neon: LapTimerPalette.neonOrange,
+                    label: 'LEAN ANGLE:',
+                    value: _lean(data),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Expanded(
+              child: portrait
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _lapGradientTile(lapStr),
+                        const SizedBox(height: 10),
+                        Expanded(
+                          child: _mainWhiteTimer(
+                            text: time,
+                            sessionBest: sessionBest,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: _lapGradientTile(lapStr),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 5,
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: _mainWhiteTimer(
+                              text: time,
+                              sessionBest: sessionBest,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -434,8 +496,10 @@ class LapTimerScreenStyles {
     final time = _lapTime(data, showThousandths);
     return LayoutBuilder(
       builder: (context, c) {
-        final w = c.maxWidth * 0.78;
-        final h = math.max(120.0, c.maxHeight * 0.58);
+        final portrait =
+            MediaQuery.orientationOf(context) == Orientation.portrait;
+        final w = portrait ? c.maxWidth : c.maxWidth * 0.78;
+        final h = math.max(120.0, c.maxHeight * (portrait ? 0.72 : 0.58));
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -590,69 +654,76 @@ class LapTimerScreenStyles {
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
+        LayoutBuilder(
+          builder: (context, _) {
+            final portrait =
+                MediaQuery.orientationOf(context) == Orientation.portrait;
+            final edge = portrait ? 2.0 : 8.0;
+            return Padding(
+              padding: EdgeInsets.fromLTRB(edge, 8, edge, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _brandTitle(),
-                  const Spacer(),
-                  _roundHudIcon(Icons.download_rounded),
-                  const SizedBox(width: 8),
-                  _roundHudIcon(Icons.layers_outlined),
-                  const SizedBox(width: 8),
-                  _roundHudIcon(Icons.ios_share_rounded),
+                  Row(
+                    children: [
+                      _brandTitle(),
+                      const Spacer(),
+                      _roundHudIcon(Icons.download_rounded),
+                      const SizedBox(width: 8),
+                      _roundHudIcon(Icons.layers_outlined),
+                      const SizedBox(width: 8),
+                      _roundHudIcon(Icons.ios_share_rounded),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: Center(
+                      child: _mainWhiteTimer(
+                        text: time,
+                        sessionBest: sessionBest,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _neonTile(
+                          neon: LapTimerPalette.neonPurple,
+                          label: 'BEST:',
+                          value: best,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _neonTile(
+                          neon: LapTimerPalette.neonOrange,
+                          label: 'LEAN:',
+                          value: _lean(data),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _neonTile(
+                          neon: LapTimerPalette.neonGreen,
+                          label: 'SPEED:',
+                          value: _speed(data),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _neonTile(
+                          neon: LapTimerPalette.neonBlue,
+                          label: 'GPS:',
+                          value: _gpsLabel(data),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: Center(
-                  child: _mainWhiteTimer(
-                    text: time,
-                    sessionBest: sessionBest,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: _neonTile(
-                      neon: LapTimerPalette.neonPurple,
-                      label: 'BEST:',
-                      value: best,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _neonTile(
-                      neon: LapTimerPalette.neonOrange,
-                      label: 'LEAN:',
-                      value: _lean(data),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _neonTile(
-                      neon: LapTimerPalette.neonGreen,
-                      label: 'SPEED:',
-                      value: _speed(data),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _neonTile(
-                      neon: LapTimerPalette.neonBlue,
-                      label: 'GPS:',
-                      value: _gpsLabel(data),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ],
     );
@@ -685,40 +756,109 @@ class LapTimerScreenStyles {
           ? TimerPrecision.millisecond
           : TimerPrecision.centisecond,
     );
-    return Row(
+    final header = Text(
+      'TEAM RED · RACE MANAGER',
+      style: TextStyle(
+        color: LapTimerPalette.neonCyan,
+        fontWeight: FontWeight.w900,
+        fontSize: 11,
+        letterSpacing: 0.6,
+        shadows: [
+          Shadow(
+            color: LapTimerPalette.neonCyan.withValues(alpha: 0.65),
+            blurRadius: 12,
+          ),
+        ],
+      ),
+    );
+    final bottomTelemetryRow = Row(
+      children: [
+        Expanded(
+          child: _neonTile(
+            neon: LapTimerPalette.neonOrange,
+            label: 'LEAN',
+            value: _lean(data),
+            valueColor: LapTimerPalette.neonOrange,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: _neonTile(
+            neon: LapTimerPalette.neonYellow,
+            label: 'TOTAL TIME',
+            value: session,
+            valueColor: LapTimerPalette.neonYellow,
+            valueFontSize: 15,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: _neonTile(
+            neon: LapTimerPalette.neonCyan,
+            label: 'GPS',
+            value: _gpsLabel(data),
+            valueColor: LapTimerPalette.neonCyan,
+          ),
+        ),
+      ],
+    );
+    final bestAndStatsRow = Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(
-          flex: 5,
-          child: _SpeedGaugeCard(
-            lap: '${data.currentLap}',
-            speed: data.speedKmh.round(),
+          child: _neonTile(
+            neon: LapTimerPalette.neonMagenta,
+            label: 'BEST LAP:',
+            value: best,
+            valueColor: LapTimerPalette.neonMagenta,
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(
-          flex: 6,
-          child: Column(
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: LapTimerPalette.panel,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Max Speed: ${data.maxSpeedKmh.toStringAsFixed(0)} km/h',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  'Lean: ${data.leanAngleDeg.toStringAsFixed(0)}°',
+                  style: const TextStyle(
+                    color: Colors.white54,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+
+    return OrientationBuilder(
+      builder: (context, orientation) {
+        if (orientation == Orientation.portrait) {
+          return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'TEAM RED · RACE MANAGER',
-                style: TextStyle(
-                  color: LapTimerPalette.neonCyan,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 11,
-                  letterSpacing: 0.6,
-                  shadows: [
-                    Shadow(
-                      color: LapTimerPalette.neonCyan.withValues(alpha: 0.65),
-                      blurRadius: 12,
-                    ),
-                  ],
-                ),
-              ),
+              header,
               const SizedBox(height: 6),
               Expanded(
-                flex: 3,
+                flex: 5,
                 child: _mainWhiteTimer(
                   text: time,
                   sessionBest: sessionBest,
@@ -726,95 +866,70 @@ class LapTimerScreenStyles {
                 ),
               ),
               const SizedBox(height: 8),
-              Expanded(
-                flex: 2,
+              SizedBox(
+                height: 108,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Expanded(
-                      child: _neonTile(
-                        neon: LapTimerPalette.neonMagenta,
-                        label: 'BEST LAP:',
-                        value: best,
-                        valueColor: LapTimerPalette.neonMagenta,
+                      child: _SpeedGaugeCard(
+                        lap: '${data.currentLap}',
+                        speed: data.speedKmh.round(),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: LapTimerPalette.panel,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.white24),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Max Speed: ${data.maxSpeedKmh.toStringAsFixed(0)} km/h',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12,
-                              ),
-                            ),
-                            Text(
-                              'Lean: ${data.leanAngleDeg.toStringAsFixed(0)}°',
-                              style: const TextStyle(
-                                color: Colors.white54,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    Expanded(child: bestAndStatsRow),
                   ],
                 ),
               ),
               const SizedBox(height: 8),
-              Row(
+              bottomTelemetryRow,
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              flex: 5,
+              child: _SpeedGaugeCard(
+                lap: '${data.currentLap}',
+                speed: data.speedKmh.round(),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              flex: 6,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  header,
+                  const SizedBox(height: 6),
                   Expanded(
-                    child: _neonTile(
-                      neon: LapTimerPalette.neonOrange,
-                      label: 'LEAN',
-                      value: _lean(data),
-                      valueColor: LapTimerPalette.neonOrange,
+                    flex: 3,
+                    child: _mainWhiteTimer(
+                      text: time,
+                      sessionBest: sessionBest,
+                      topLabel: 'CURRENT LAP TIME',
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(height: 8),
                   Expanded(
-                    child: _neonTile(
-                      neon: LapTimerPalette.neonYellow,
-                      label: 'TOTAL TIME',
-                      value: session,
-                      valueColor: LapTimerPalette.neonYellow,
-                      valueFontSize: 15,
-                    ),
+                    flex: 2,
+                    child: bestAndStatsRow,
                   ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: _neonTile(
-                      neon: LapTimerPalette.neonCyan,
-                      label: 'GPS',
-                      value: _gpsLabel(data),
-                      valueColor: LapTimerPalette.neonCyan,
-                    ),
-                  ),
+                  const SizedBox(height: 8),
+                  bottomTelemetryRow,
                 ],
               ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 
-  /// Style 6 — Team performance board with rider rows and side map.
+  /// Style 6 — LIVE team performance (MotoGP-style board + map).
   static Widget teamPerformanceBoard({
     required TelemetrySnapshot data,
     required bool showThousandths,
@@ -823,225 +938,543 @@ class LapTimerScreenStyles {
     required List<TelemetryTrailPoint> trail,
   }) {
     final visibleRiders = riders.isEmpty ? data.riders : riders;
-    return Container(
-      decoration: BoxDecoration(
-        color: LapTimerPalette.panel,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: LapTimerPalette.neonCyan.withValues(alpha: 0.5)),
-        boxShadow: [
-          BoxShadow(
-            color: LapTimerPalette.neonCyan.withValues(alpha: 0.22),
-            blurRadius: 16,
+    final prec = showThousandths ? TimerPrecision.millisecond : TimerPrecision.centisecond;
+    final tyreLaps = (data.elapsed.inMinutes % 20) + 1;
+
+    Widget leaderboardColumn({required bool compact}) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _teamLiveHeaderRow(data: data, showThousandths: showThousandths, tyreLaps: tyreLaps),
+          SizedBox(height: compact ? 6 : 10),
+          Expanded(
+            child: ListView.separated(
+              padding: EdgeInsets.zero,
+              itemCount: visibleRiders.length,
+              separatorBuilder: (_, __) => SizedBox(height: compact ? 5 : 7),
+              itemBuilder: (context, i) {
+                return _teamLiveRiderRow(
+                  rider: visibleRiders[i],
+                  index: i,
+                  isLeader: i == 0,
+                  precision: prec,
+                  compact: compact,
+                );
+              },
+            ),
           ),
         ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 7,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+      );
+    }
+
+    Widget mapPane({EdgeInsetsGeometry? margin}) {
+      return Container(
+        margin: margin,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: LapTimerPalette.liveCyan.withValues(alpha: 0.55), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: LapTimerPalette.liveCyan.withValues(alpha: 0.2),
+              blurRadius: 14,
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            TrackMapWidget(track: track, riders: visibleRiders, telemetryTrail: trail),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.08),
+                    Colors.black.withValues(alpha: 0.45),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 4,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _mapHudIconButton(Icons.add),
+                  _mapHudIconButton(Icons.remove),
+                  _mapHudIconButton(Icons.my_location),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ColoredBox(
+      color: LapTimerPalette.bg,
+      child: OrientationBuilder(
+        builder: (context, o) {
+          if (o == Orientation.portrait) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(6, 6, 6, 4),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    'TEAM PERFORMANCE LIVE - MOTO GP STYLE',
-                    style: TextStyle(
-                      color: LapTimerPalette.neonCyan,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 14,
-                      letterSpacing: 0.4,
-                      shadows: [
-                        Shadow(
-                          color: LapTimerPalette.neonCyan.withValues(alpha: 0.65),
-                          blurRadius: 10,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 10,
-                    children: [
-                      _tinyMetric('TST', _best(data, showThousandths), LapTimerPalette.neonPurple),
-                      _tinyMetric('LEAN', _lean(data), LapTimerPalette.neonOrange),
-                      _tinyMetric('SPEED', _speed(data), LapTimerPalette.neonGreen),
-                      _tinyMetric('TYRE AGE', '${(data.elapsed.inMinutes % 20) + 1} Laps', LapTimerPalette.neonBlue),
-                    ],
-                  ),
+                  Expanded(flex: 3, child: leaderboardColumn(compact: true)),
                   const SizedBox(height: 8),
-                  Expanded(
-                    child: ListView.separated(
-                      itemCount: visibleRiders.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 6),
-                      itemBuilder: (context, i) {
-                        final r = visibleRiders[i];
-                        final status = i % 3 == 0 ? 'Pit Out' : 'On Lap';
-                        final gap = i == 0 ? '-0.000' : '+0.${(i + 1) * 132}';
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: i == 0
-                                  ? LapTimerPalette.neonCyan
-                                  : Colors.white24,
-                            ),
-                            boxShadow: i == 0
-                                ? [
-                                    BoxShadow(
-                                      color: LapTimerPalette.neonCyan.withValues(alpha: 0.35),
-                                      blurRadius: 12,
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 3,
-                                child: Text(
-                                  'RIDER: ${r.displayName}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 12,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: _rowTag(
-                                  'CURR',
-                                  formatDuration(
-                                    data.lapElapsed + Duration(milliseconds: i * 180),
-                                    precision: showThousandths
-                                        ? TimerPrecision.millisecond
-                                        : TimerPrecision.centisecond,
-                                  ),
-                                  LapTimerPalette.neonCyan,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                flex: 2,
-                                child: _rowTag(
-                                  'BEST',
-                                  formatDuration(
-                                    r.bestLap,
-                                    precision: showThousandths
-                                        ? TimerPrecision.millisecond
-                                        : TimerPrecision.centisecond,
-                                  ),
-                                  LapTimerPalette.neonPurple,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                flex: 2,
-                                child: _rowTag('SPEED', r.maxSpeedKmh.toStringAsFixed(1), LapTimerPalette.neonGreen),
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                flex: 2,
-                                child: _rowTag('LEAN', '${(data.leanAngleDeg - i).round()}°', LapTimerPalette.neonOrange),
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  '$status  $gap',
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                  SizedBox(height: 160, child: mapPane()),
                 ],
               ),
+            );
+          }
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 7,
+                  child: leaderboardColumn(compact: false),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 3,
+                  child: mapPane(),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  static Widget _mapHudIconButton(IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Material(
+        color: Colors.black.withValues(alpha: 0.35),
+        shape: const CircleBorder(side: BorderSide(color: Color(0x5522D3EE))),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () {},
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: Icon(icon, size: 16, color: LapTimerPalette.liveCyan),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Widget _teamLiveHeaderRow({
+    required TelemetrySnapshot data,
+    required bool showThousandths,
+    required int tyreLaps,
+  }) {
+    final best = _best(data, showThousandths);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          'TEAM RED - RIDERS',
+          style: TextStyle(
+            color: LapTimerPalette.liveCyan,
+            fontWeight: FontWeight.w900,
+            fontSize: 13,
+            letterSpacing: 0.6,
+            shadows: [
+              Shadow(
+                color: LapTimerPalette.liveCyan.withValues(alpha: 0.75),
+                blurRadius: 12,
+              ),
+            ],
+          ),
+        ),
+        const Spacer(),
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: AlignmentDirectional.centerEnd,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _teamLiveHeaderChip('T.BST', best),
+                _teamLiveHeaderChip('LEAN', _lean(data)),
+                _teamLiveHeaderChip('SPEED', '${data.maxSpeedKmh.round()} km/h'),
+                _teamLiveHeaderChip('TYRE_AGE', '$tyreLaps Laps'),
+              ],
             ),
           ),
-          Expanded(
-            flex: 3,
-            child: Container(
-              margin: const EdgeInsets.fromLTRB(2, 8, 8, 8),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: LapTimerPalette.neonBlue.withValues(alpha: 0.6)),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  TrackMapWidget(track: track, riders: visibleRiders, telemetryTrail: trail),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withValues(alpha: 0.2),
-                          Colors.black.withValues(alpha: 0.6),
-                        ],
+        ),
+      ],
+    );
+  }
+
+  static Widget _teamLiveHeaderChip(String k, String v) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 10),
+      child: Text(
+        '$k: $v',
+        style: TextStyle(
+          color: LapTimerPalette.liveCyan.withValues(alpha: 0.92),
+          fontWeight: FontWeight.w800,
+          fontSize: 9,
+          letterSpacing: 0.2,
+          shadows: [
+            Shadow(
+              color: LapTimerPalette.liveCyan.withValues(alpha: 0.35),
+              blurRadius: 6,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static const List<String> _teamLiveFlags = ['🇬🇧', '🇮🇹', '🇪🇸', '🇫🇷', '🇯🇵', '🇺🇸'];
+
+  static Widget _teamLiveRiderRow({
+    required RiderLiveData rider,
+    required int index,
+    required bool isLeader,
+    required TimerPrecision precision,
+    required bool compact,
+  }) {
+    final statuses = ['Pit Out', 'On Lap', 'Out Lap'];
+    final status = statuses[index % statuses.length];
+    final gapStr = index == 0 ? '-0.000' : '+${(index * 0.132).toStringAsFixed(3)}';
+    final gapColor = index == 0 ? LapTimerPalette.liveGreen : LapTimerPalette.neonRed;
+    final curr = formatDuration(rider.lastLap, precision: precision);
+    final best = formatDuration(rider.bestLap, precision: precision);
+    final leanDeg = (48 - index * 2).clamp(32, 54);
+    final bikeTemp = 88 + index * 2;
+    final riderTyre = 4 + index * 3;
+    final flag = _teamLiveFlags[index % _teamLiveFlags.length];
+    final initials = rider.displayName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((s) => s.isNotEmpty)
+        .take(2)
+        .map((s) => s[0].toUpperCase())
+        .join();
+
+    final borderColor = isLeader ? LapTimerPalette.liveCyan : Colors.white.withValues(alpha: 0.22);
+    final glow = isLeader
+        ? [
+            BoxShadow(
+              color: LapTimerPalette.liveCyan.withValues(alpha: 0.4),
+              blurRadius: 10,
+              spreadRadius: 0,
+            ),
+          ]
+        : <BoxShadow>[];
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: compact ? 5 : 7, vertical: compact ? 5 : 6),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: borderColor, width: isLeader ? 1.4 : 1),
+        boxShadow: glow,
+      ),
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final narrow = c.maxWidth < 520;
+          final riderBlock = SizedBox(
+            width: narrow ? 56 : 72,
+            child: Row(
+              children: [
+                Container(
+                  width: narrow ? 30 : 34,
+                  height: narrow ? 30 : 34,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: LapTimerPalette.liveCyan.withValues(alpha: 0.85), width: 1.2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: LapTimerPalette.liveCyan.withValues(alpha: 0.25),
+                        blurRadius: 8,
                       ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    initials.isEmpty ? '?' : initials,
+                    style: TextStyle(
+                      color: LapTimerPalette.liveCyan,
+                      fontWeight: FontWeight.w900,
+                      fontSize: narrow ? 10 : 11,
                     ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        rider.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 11,
+                          height: 1.05,
+                        ),
+                      ),
+                      Text(
+                        flag,
+                        style: const TextStyle(fontSize: 12, height: 1),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
+          );
+
+          final cells = Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              riderBlock,
+              SizedBox(width: compact ? 4 : 6),
+              Expanded(
+                flex: 2,
+                child: _teamLiveWhiteLapCell(label: 'CURR_LAP', value: curr, compact: compact),
+              ),
+              SizedBox(width: compact ? 3 : 5),
+              Expanded(
+                flex: 2,
+                child: _teamLiveNeonMetricCell(
+                  label: 'BEST_LAP',
+                  value: best,
+                  border: LapTimerPalette.livePurple,
+                  valueColor: LapTimerPalette.livePurple,
+                  compact: compact,
+                ),
+              ),
+              SizedBox(width: compact ? 3 : 5),
+              Expanded(
+                flex: 2,
+                child: _teamLiveNeonMetricCell(
+                  label: 'SPEED',
+                  value: '${rider.maxSpeedKmh.toStringAsFixed(1)} km/h',
+                  border: LapTimerPalette.liveGreen,
+                  valueColor: LapTimerPalette.liveGreen,
+                  compact: compact,
+                ),
+              ),
+              SizedBox(width: compact ? 3 : 5),
+              Expanded(
+                flex: 2,
+                child: _teamLiveNeonMetricCell(
+                  label: 'LEAN',
+                  value: '$leanDeg°',
+                  border: LapTimerPalette.liveOrange,
+                  valueColor: LapTimerPalette.liveOrange,
+                  compact: compact,
+                ),
+              ),
+              SizedBox(width: compact ? 3 : 5),
+              Expanded(
+                flex: 3,
+                child: _teamLiveStatusPanel(
+                  status: status,
+                  gapStr: gapStr,
+                  gapColor: gapColor,
+                  bikeTemp: bikeTemp,
+                  tyreLaps: riderTyre,
+                  compact: compact,
+                ),
+              ),
+            ],
+          );
+
+          if (narrow) {
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(width: 620, child: cells),
+            );
+          }
+          return cells;
+        },
+      ),
+    );
+  }
+
+  static Widget _teamLiveWhiteLapCell({
+    required String label,
+    required String value,
+    required bool compact,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 5, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.2),
+            blurRadius: 6,
           ),
         ],
       ),
-    );
-  }
-
-  static Widget _tinyMetric(String label, String value, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.9)),
-      ),
-      child: Text(
-        '$label: $value',
-        style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 11),
-      ),
-    );
-  }
-
-  static Widget _rowTag(String label, String value, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: color.withValues(alpha: 0.9)),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             label,
-            style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w800),
+            style: TextStyle(
+              color: Colors.black.withValues(alpha: 0.55),
+              fontWeight: FontWeight.w800,
+              fontSize: compact ? 6.5 : 7,
+              letterSpacing: 0.3,
+            ),
           ),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.w900,
+                fontSize: 11,
+                height: 1,
+              ),
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  static Widget _teamLiveNeonMetricCell({
+    required String label,
+    required String value,
+    required Color border,
+    required Color valueColor,
+    required bool compact,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: compact ? 3 : 4, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: border.withValues(alpha: 0.95), width: 1.1),
+        boxShadow: [
+          BoxShadow(color: border.withValues(alpha: 0.28), blurRadius: 8),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: border.withValues(alpha: 0.85),
+              fontWeight: FontWeight.w800,
+              fontSize: compact ? 6.5 : 7,
+              letterSpacing: 0.2,
+            ),
+          ),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              maxLines: 1,
+              style: TextStyle(
+                color: valueColor,
+                fontWeight: FontWeight.w900,
+                fontSize: compact ? 9 : 10,
+                height: 1,
+                shadows: [
+                  Shadow(color: valueColor.withValues(alpha: 0.45), blurRadius: 6),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _teamLiveStatusPanel({
+    required String status,
+    required String gapStr,
+    required Color gapColor,
+    required int bikeTemp,
+    required int tyreLaps,
+    required bool compact,
+  }) {
+    final fs = compact ? 6.5 : 7.0;
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: compact ? 5 : 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: LapTimerPalette.liveCyan.withValues(alpha: 0.9), width: 1.1),
+        boxShadow: [
+          BoxShadow(
+            color: LapTimerPalette.liveCyan.withValues(alpha: 0.3),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _teamLiveStatusLine('STATUS', status, LapTimerPalette.liveCyan, fs),
+          _teamLiveStatusLine('GAP', gapStr, gapColor, fs),
+          _teamLiveStatusLine('BIKE_TEMP', '$bikeTemp°C', LapTimerPalette.liveCyan, fs),
+          _teamLiveStatusLine('TYRE_AGE', '$tyreLaps Laps', LapTimerPalette.liveCyan, fs),
+        ],
+      ),
+    );
+  }
+
+  static Widget _teamLiveStatusLine(String k, String v, Color vColor, double labelFs) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: RichText(
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        text: TextSpan(
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.55),
+            fontWeight: FontWeight.w800,
+            fontSize: labelFs,
+          ),
+          children: [
+            TextSpan(text: '$k: '),
+            TextSpan(
+              text: v,
+              style: TextStyle(
+                color: vColor,
+                fontWeight: FontWeight.w900,
+                fontSize: labelFs + 0.5,
+                shadows: [
+                  Shadow(color: vColor.withValues(alpha: 0.4), blurRadius: 4),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

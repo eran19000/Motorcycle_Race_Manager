@@ -11,6 +11,7 @@ import 'package:sensors_plus/sensors_plus.dart';
 import '../data/racing_tracks.dart';
 import '../models/racing_track.dart';
 import '../models/rider.dart';
+import '../widgets/time_formatters.dart';
 
 class TelemetrySnapshot {
   TelemetrySnapshot({
@@ -36,6 +37,9 @@ class TelemetrySnapshot {
     required this.accelerometerAlive,
     required this.internalGpsAlive,
     required this.externalGpsAlive,
+    required this.sectorUpdateMessage,
+    required this.bestSectorTimesMs,
+    required this.sessionPeakLeanAbsDeg,
   });
 
   final Duration elapsed;
@@ -61,6 +65,12 @@ class TelemetrySnapshot {
   final bool accelerometerAlive;
   final bool internalGpsAlive;
   final bool externalGpsAlive;
+  /// Non-null briefly after a GPS sector split (S1/S2/S3) for dashboard UI.
+  final String? sectorUpdateMessage;
+  /// Best sector durations this session (ms); 0 = no valid split yet for that index.
+  final List<int> bestSectorTimesMs;
+  /// Maximum absolute lean magnitude seen this session (deg), for coaching summaries.
+  final double sessionPeakLeanAbsDeg;
 }
 
 class TelemetryTrailPoint {
@@ -99,12 +109,20 @@ class TelemetryService extends ChangeNotifier {
   double _speed = 0;
   double _gForce = 0;
   double _leanAngle = 0;
+  double _sessionPeakLeanAbs = 0;
   bool _useExternalGps = false;
   bool _personalBestSectorTriggered = false;
   bool _sessionBestLapTriggered = false;
   Position? _finishLine;
   Position? _lastPosition;
   bool _finishLineArmed = true;
+  static const double _sectorTriggerRadiusM = 15;
+  static const double _minSpeedKmhForSector = 15;
+  bool _gpsSector1Armed = true;
+  bool _gpsSector2Armed = false;
+  DateTime? _timeAtSector1Split;
+  String? _sectorUpdateMessage;
+  Timer? _sectorUpdateClearTimer;
   RacingTrack _selectedTrack = racingTracks.first;
   bool _demoMode = kIsWeb;
   final List<TelemetryTrailPoint> _telemetryTrail = [];
@@ -199,7 +217,20 @@ class TelemetryService extends ChangeNotifier {
         externalGpsAlive: !_useExternalGps ||
             (_externalDevice != null &&
                 _isFresh(_lastNmeaAt, const Duration(seconds: 2))),
+        sectorUpdateMessage: _sectorUpdateMessage,
+        bestSectorTimesMs: _bestSectorTimesMsSnapshot(),
+        sessionPeakLeanAbsDeg: _sessionPeakLeanAbs,
       );
+
+  List<int> _bestSectorTimesMsSnapshot() {
+    const sentinel = Duration(hours: 1);
+    return List<int>.generate(3, (i) {
+      if (i >= _bestSectors.length) return 0;
+      final d = _bestSectors[i];
+      if (d >= sentinel) return 0;
+      return d.inMilliseconds;
+    }, growable: false);
+  }
 
   bool _isFresh(DateTime? ts, Duration threshold) {
     if (ts == null) return false;
@@ -210,6 +241,8 @@ class TelemetryService extends ChangeNotifier {
     _gyroSub = gyroscopeEventStream().listen((event) {
       _lastGyroAt = DateTime.now();
       _leanAngle = (_leanAngle + event.y * 1.4).clamp(-62.0, 62.0);
+      final a = _leanAngle.abs();
+      if (a > _sessionPeakLeanAbs) _sessionPeakLeanAbs = a;
       notifyListeners();
     });
     _accSub = accelerometerEventStream().listen((event) {
@@ -249,6 +282,7 @@ class TelemetryService extends ChangeNotifier {
         _speed = max(computedSpeed, 0.0);
         _pushTrailPoint(position, _speed - previousSpeed >= 0);
         if (_speed > _maxSpeed) _maxSpeed = _speed;
+        _evaluateGpsSectorBeacons(position);
         _evaluateFinishLineCross(position);
         notifyListeners();
       });
@@ -304,6 +338,7 @@ class TelemetryService extends ChangeNotifier {
 
   void selectTrack(RacingTrack track) {
     _selectedTrack = track;
+    _resetGpsSectorArmsForLap();
     _finishLine = Position(
       latitude: track.finishLat,
       longitude: track.finishLng,
@@ -341,7 +376,11 @@ class TelemetryService extends ChangeNotifier {
       _simulateTelemetry();
     }
     _simulateRiderMovement();
-    _evaluateSectorSplitByLapProgress();
+    final useGpsSectors =
+        _selectedTrack.hasGpsSectorBeacons && !_demoMode;
+    if (!useGpsSectors) {
+      _evaluateSectorSplitByLapProgress();
+    }
     notifyListeners();
   }
 
@@ -351,6 +390,8 @@ class TelemetryService extends ChangeNotifier {
     _lastAccAt = DateTime.now();
     _lastGpsUpdateAt = DateTime.now();
     _leanAngle = 47 * sin(t * 0.9);
+    final simLeanAbs = _leanAngle.abs();
+    if (simLeanAbs > _sessionPeakLeanAbs) _sessionPeakLeanAbs = simLeanAbs;
     _speed = 155 + 42 * sin(t * 0.6) + 18 * sin(t * 1.6);
     _gForce = (1.1 + 0.9 * sin(t * 2.0)).clamp(0.0, 4.0);
     if (_speed > _maxSpeed) {
@@ -371,6 +412,7 @@ class TelemetryService extends ChangeNotifier {
       headingAccuracy: 0,
     );
     _pushTrailPoint(_lastPosition!, _speed >= 150);
+    _evaluateGpsSectorBeacons(_lastPosition!);
     _evaluateFinishLineCross(_lastPosition!);
   }
 
@@ -418,6 +460,61 @@ class TelemetryService extends ChangeNotifier {
     _idealLap = _bestSectors.fold(Duration.zero, (sum, item) => sum + item);
   }
 
+  void _resetGpsSectorArmsForLap() {
+    _gpsSector1Armed = true;
+    _gpsSector2Armed = false;
+    _timeAtSector1Split = null;
+  }
+
+  void _flashSectorUpdate(String message) {
+    _sectorUpdateMessage = message;
+    notifyListeners();
+    _sectorUpdateClearTimer?.cancel();
+    _sectorUpdateClearTimer = Timer(const Duration(milliseconds: 2600), () {
+      _sectorUpdateMessage = null;
+      notifyListeners();
+    });
+  }
+
+  void _evaluateGpsSectorBeacons(Position currentPosition) {
+    final track = _selectedTrack;
+    if (!track.hasGpsSectorBeacons || _demoMode) return;
+
+    final lat = currentPosition.latitude;
+    final lng = currentPosition.longitude;
+    final s1Lat = track.sector1Lat!;
+    final s1Lng = track.sector1Lng!;
+    final s2Lat = track.sector2Lat!;
+    final s2Lng = track.sector2Lng!;
+
+    if (_gpsSector1Armed) {
+      final d1 = Geolocator.distanceBetween(lat, lng, s1Lat, s1Lng);
+      if (d1 <= _sectorTriggerRadiusM && _speed > _minSpeedKmhForSector) {
+        final dur = DateTime.now().difference(_lapStart);
+        _registerSector(0, dur);
+        _flashSectorUpdate(
+          'SECTOR UPDATE — S1 ${formatDuration(dur, precision: TimerPrecision.centisecond)}',
+        );
+        _gpsSector1Armed = false;
+        _gpsSector2Armed = true;
+        _timeAtSector1Split = DateTime.now();
+      }
+    }
+
+    if (_gpsSector2Armed) {
+      final d2 = Geolocator.distanceBetween(lat, lng, s2Lat, s2Lng);
+      if (d2 <= _sectorTriggerRadiusM && _speed > _minSpeedKmhForSector) {
+        final from = _timeAtSector1Split ?? _lapStart;
+        final dur = DateTime.now().difference(from);
+        _registerSector(1, dur);
+        _flashSectorUpdate(
+          'SECTOR UPDATE — S2 ${formatDuration(dur, precision: TimerPrecision.centisecond)}',
+        );
+        _gpsSector2Armed = false;
+      }
+    }
+  }
+
   void _evaluateFinishLineCross(Position currentPosition) {
     final finishLine = _finishLine;
     if (finishLine == null) return;
@@ -440,6 +537,19 @@ class TelemetryService extends ChangeNotifier {
   void _startNextLap() {
     final lapTime = DateTime.now().difference(_lapStart);
     if (lapTime <= const Duration(seconds: 15)) return;
+
+    final useGpsSectors =
+        _selectedTrack.hasGpsSectorBeacons && !_demoMode;
+    if (useGpsSectors && _currentSectors.length >= 2) {
+      final s3 = lapTime - _currentSectors[0] - _currentSectors[1];
+      if (s3 >= Duration.zero) {
+        _registerSector(2, s3);
+        _flashSectorUpdate(
+          'SECTOR UPDATE — S3 ${formatDuration(s3, precision: TimerPrecision.centisecond)}',
+        );
+      }
+    }
+
     if (lapTime < _bestLap) {
       _bestLap = lapTime;
       _sessionBestLapTriggered = true;
@@ -459,6 +569,7 @@ class TelemetryService extends ChangeNotifier {
     _lapStart = DateTime.now();
     _currentSector = 0;
     _currentSectors.clear();
+    _resetGpsSectorArmsForLap();
   }
 
   void _simulateRiderMovement() {
@@ -561,6 +672,7 @@ class TelemetryService extends ChangeNotifier {
 
   @override
   void dispose() {
+    _sectorUpdateClearTimer?.cancel();
     _gyroSub?.cancel();
     _accSub?.cancel();
     _positionSub?.cancel();

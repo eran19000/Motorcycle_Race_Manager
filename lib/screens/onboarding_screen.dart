@@ -7,6 +7,7 @@ import '../models/app_user.dart';
 import '../models/racing_track.dart';
 import '../services/group_management_service.dart';
 import '../services/telemetry_service.dart';
+import '../theme/race_input_theme.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key, required this.telemetryService});
@@ -18,6 +19,8 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
+  static const double _fieldSectionGap = 20;
+
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _contactController = TextEditingController();
@@ -143,9 +146,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   children: [
                     TextField(
                       autofocus: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Search race track',
-                        prefixIcon: Icon(Icons.search),
+                      style: RaceInputTheme.typingStyle,
+                      decoration: RaceInputTheme.neonDecoration(
+                        'Search race track',
+                        prefixIcon: const Icon(Icons.search, color: RaceInputTheme.neonBright),
                       ),
                       onChanged: (value) {
                         setModalState(() {
@@ -159,7 +163,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         });
                       },
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 18),
                     SizedBox(
                       height: 380,
                       child: ListView.builder(
@@ -195,25 +199,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final whiteFieldTheme = Theme.of(context).copyWith(
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.black, width: 1.2),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.black, width: 1.2),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.black, width: 1.5),
-        ),
-      ),
-    );
-
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -224,13 +209,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Theme(
-          data: whiteFieldTheme,
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Text(
               'User Onboarding',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: Colors.white),
@@ -238,24 +221,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(labelText: 'User Name'),
+              style: RaceInputTheme.typingStyle,
+              decoration: const InputDecoration(hintText: 'User Name'),
               validator: (value) => (value == null || value.isEmpty) ? 'Required' : null,
             ),
+            const SizedBox(height: _fieldSectionGap),
             TextFormField(
               controller: _contactController,
+              style: RaceInputTheme.typingStyle,
               decoration: const InputDecoration(
-                labelText: 'Email or Phone',
+                hintText: 'Email or Phone',
                 helperText: 'אפשר הרשמה דרך מייל או טלפון',
                 helperMaxLines: 2,
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               ),
               validator: (value) => (value == null || value.isEmpty) ? 'Required' : null,
             ),
+            const SizedBox(height: _fieldSectionGap),
             TextFormField(
               controller: _bikeController,
-              decoration: const InputDecoration(labelText: 'Bike Model'),
+              style: RaceInputTheme.typingStyle,
+              decoration: const InputDecoration(hintText: 'Bike Model'),
               validator: (value) => (value == null || value.isEmpty) ? 'Required' : null,
             ),
+            const SizedBox(height: _fieldSectionGap),
             AnimatedBuilder(
               animation: _groupService,
               builder: (context, _) {
@@ -271,14 +259,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 return DropdownButtonFormField<String>(
                   key: ValueKey(_selectedManagementGroupId),
                   initialValue: _selectedManagementGroupId,
+                  style: RaceInputTheme.dropdownStyle,
                   decoration: const InputDecoration(
-                    labelText: 'Track-Day Management Group (paid only)',
+                    hintText: 'Track-Day Management Group (paid only)',
                   ),
+                  dropdownColor: RaceInputTheme.fieldFill,
                   items: paidGroups
                       .map(
                         (group) => DropdownMenuItem<String>(
                           value: group.id,
-                          child: Text(group.name),
+                          child: Text(group.name, style: RaceInputTheme.typingStyle),
                         ),
                       )
                       .toList(),
@@ -289,6 +279,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 );
               },
             ),
+            const SizedBox(height: _fieldSectionGap),
             Text(
               'Race Track (IL + World circuits)',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white),
@@ -311,9 +302,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               trailing: const Icon(Icons.search),
               onTap: _pickTrackFromSearch,
             ),
+            const SizedBox(height: _fieldSectionGap),
             TextFormField(
               controller: _lapController,
-              decoration: const InputDecoration(labelText: 'Typical Lap Time (seconds)'),
+              style: RaceInputTheme.typingStyle,
+              decoration: const InputDecoration(hintText: 'Typical Lap Time (seconds)'),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               validator: (value) {
                 final parsed = double.tryParse(value ?? '');
@@ -321,17 +314,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 return null;
               },
             ),
+            const SizedBox(height: _fieldSectionGap),
             SwitchListTile(
               title: const Text('Stay anonymous in global leaderboards'),
               value: _anonymous,
               onChanged: (value) => setState(() => _anonymous = value),
             ),
+            const SizedBox(height: 4),
             SwitchListTile(
               title: const Text('Do not save personal details'),
               subtitle: const Text('Privacy-first session mode'),
               value: _noSaveDetails,
               onChanged: (value) => setState(() => _noSaveDetails = value),
             ),
+            const SizedBox(height: 4),
             SwitchListTile(
               title: const Text('Prefer external GPS (Bluetooth)'),
               value: _externalGpsPreferred,
@@ -401,8 +397,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               _gpsStatus,
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
-              ],
-            ),
+            ],
           ),
         ),
       ),

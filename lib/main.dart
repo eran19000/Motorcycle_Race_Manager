@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'screens/home_shell.dart';
+import 'theme/race_input_theme.dart';
 
 void main() {
   runApp(const RaceManagerApp());
@@ -91,24 +92,11 @@ class RaceManagerApp extends StatelessWidget {
             foregroundColor: Colors.white,
           ),
         ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          helperStyle: const TextStyle(color: Colors.white70),
-          labelStyle: const TextStyle(color: Colors.white),
-          floatingLabelStyle: const TextStyle(color: Color(0xFF22D3EE)),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Color(0xFF22D3EE), width: 1.1),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Color(0xFF22D3EE), width: 1.1),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Color(0xFF22D3EE), width: 1.4),
-          ),
+        inputDecorationTheme: RaceInputTheme.decorationTheme,
+        textSelectionTheme: const TextSelectionThemeData(
+          cursorColor: RaceInputTheme.neonBright,
+          selectionColor: Color(0x4422D3EE),
+          selectionHandleColor: RaceInputTheme.neonBright,
         ),
       ),
       home: const _MobilePreviewFrame(child: HomeShell()),

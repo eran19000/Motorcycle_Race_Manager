@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/telemetry_service.dart';
 import '../services/session_history_service.dart';
+import '../theme/race_input_theme.dart';
 import '../widgets/lap_timer_screen_styles.dart';
 import '../widgets/time_formatters.dart';
 import '../widgets/track_map_widget.dart';
@@ -18,6 +19,15 @@ class LiveDashboardScreen extends StatefulWidget {
 
 class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
   static const _prefLapStyle = 'lap_screen_style';
+
+  static const _lapLayoutChoices = <({int id, String title, String en})>[
+    (id: 1, title: 'מסך A — רשת פיצול', en: 'Multi-split neon'),
+    (id: 2, title: 'מסך B — טיימר מרכזי', en: 'Pure center glow'),
+    (id: 3, title: 'מסך C — Digital Pro', en: 'Digital Pro'),
+    (id: 4, title: 'מסך D — מפה + HUD', en: 'Map HUD'),
+    (id: 5, title: 'מסך E — מד + צוות', en: 'Team gauge'),
+    (id: 6, title: 'מסך F — לוח ביצועים', en: 'Team performance'),
+  ];
 
   bool _showThousandths = false;
   int _layout = 1;
@@ -51,15 +61,31 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
       builder: (context, _) {
         final data = widget.telemetryService.snapshot;
         final sessionBest = data.sessionBestLapTriggered;
+        final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
         const bgColor = LapTimerPalette.bg;
         const fgColor = Colors.white;
 
-        final lapAreaHeight = _landscapeMode ? 340.0 : 400.0;
+        final lapAreaHeight = isLandscape
+            ? MediaQuery.of(context).size.height * 0.72
+            : MediaQuery.of(context).size.height * 0.48;
+
+        Widget insetBody(Widget child) {
+          if (isLandscape) return child;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: child,
+          );
+        }
 
         return Container(
           color: bgColor,
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.fromLTRB(
+            isLandscape ? 16 : 0,
+            16,
+            isLandscape ? 16 : 0,
+            16,
+          ),
           child: LayoutBuilder(
             builder: (context, constraints) => SingleChildScrollView(
               child: ConstrainedBox(
@@ -67,100 +93,208 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Live Racing Dashboard',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                color: fgColor,
-                              ),
-                        ),
+                    if (!isLandscape) ...[
+                      insetBody(
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'Demo',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w900,
+                            Expanded(
+                              child: Text(
+                                'Live Racing Dashboard',
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                      color: fgColor,
+                                    ),
                               ),
                             ),
-                            Switch(
-                              value: data.demoMode,
-                              onChanged: widget.telemetryService.toggleDemoMode,
-                            ),
-                            const Text(
-                              'External Bluetooth GPS',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            Switch(
-                              value: data.useExternalGps,
-                              onChanged: widget.telemetryService.toggleExternalGps,
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'Demo',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                Switch(
+                                  value: data.demoMode,
+                                  onChanged: widget.telemetryService.toggleDemoMode,
+                                ),
+                                const Text(
+                                  'External Bluetooth GPS',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                Switch(
+                                  value: data.useExternalGps,
+                                  onChanged: widget.telemetryService.toggleExternalGps,
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
+                      ),
+                      const SizedBox(height: 8),
+                      insetBody(
+                        FilledButton.tonalIcon(
+                          onPressed: () => _openLapScreenLayoutPicker(context),
+                          icon: const Icon(Icons.dashboard_customize_outlined),
+                          label: const Text('בחירת מסך לפטיימר'),
+                          style: FilledButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            backgroundColor: Colors.white.withValues(alpha: 0.12),
+                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                            alignment: Alignment.center,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    if (isLandscape)
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          _miniInfo('Lap', '${data.currentLap}'),
+                          _miniInfo('Best', formatDuration(
+                            data.bestLap,
+                            precision: _showThousandths
+                                ? TimerPrecision.millisecond
+                                : TimerPrecision.centisecond,
+                          )),
+                          _miniInfo('Speed', data.speedKmh.toStringAsFixed(1)),
+                          _miniInfo('Lean', '${data.leanAngleDeg.toStringAsFixed(1)}°'),
+                        ],
+                      ),
                     SizedBox(
                       height: lapAreaHeight,
-                      child: LapTimerScreenStyles.build(
-                        styleId: _lapScreenStyle,
-                        data: data,
-                        showThousandths: _showThousandths,
-                        sessionBest: sessionBest,
-                        track: data.selectedTrack,
-                        riders: data.riders,
-                        trail: data.telemetryTrail,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          LapTimerScreenStyles.build(
+                            styleId: _lapScreenStyle,
+                            data: data,
+                            showThousandths: _showThousandths,
+                            sessionBest: sessionBest,
+                            track: data.selectedTrack,
+                            riders: data.riders,
+                            trail: data.telemetryTrail,
+                          ),
+                          if (data.sectorUpdateMessage != null)
+                            Positioned(
+                              top: 6,
+                              left: 8,
+                              right: 8,
+                              child: IgnorePointer(
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: Center(
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        color: LapTimerPalette.neonCyan.withValues(alpha: 0.22),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: LapTimerPalette.neonCyan,
+                                          width: 1.5,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: LapTimerPalette.neonCyan.withValues(alpha: 0.45),
+                                            blurRadius: 14,
+                                          ),
+                                        ],
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 8,
+                                        ),
+                                        child: Text(
+                                          data.sectorUpdateMessage!,
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 13,
+                                            letterSpacing: 0.6,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                     if (sessionBest)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          'SESSION BEST LAP',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: LapTimerPalette.neonGreen,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 12,
-                            letterSpacing: 1.2,
-                            shadows: [
-                              Shadow(
-                                color: LapTimerPalette.neonGreen.withValues(alpha: 0.7),
-                                blurRadius: 12,
-                              ),
-                            ],
+                      insetBody(
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            'SESSION BEST LAP',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: LapTimerPalette.neonGreen,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12,
+                              letterSpacing: 1.2,
+                              shadows: [
+                                Shadow(
+                                  color: LapTimerPalette.neonGreen.withValues(alpha: 0.7),
+                                  blurRadius: 12,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     const SizedBox(height: 8),
-                    Center(
-                      child: Text(
-                        widget.telemetryService.externalGpsProviderLabel(),
-                        style: const TextStyle(
-                          color: fgColor,
-                          fontWeight: FontWeight.w700,
+                    if (isLandscape)
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          _miniInfo('Ideal', formatDuration(
+                            data.idealLap,
+                            precision: _showThousandths
+                                ? TimerPrecision.millisecond
+                                : TimerPrecision.centisecond,
+                          )),
+                          _miniInfo('GPS', widget.telemetryService.externalGpsProviderLabel()),
+                          _miniInfo('Track', data.selectedTrack.label),
+                        ],
+                      ),
+                    insetBody(
+                      Center(
+                        child: Text(
+                          widget.telemetryService.externalGpsProviderLabel(),
+                          style: const TextStyle(
+                            color: fgColor,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Center(
-                      child: Text(
-                        'Track: ${data.selectedTrack.label} | ${data.selectedTrack.lengthKm}km',
-                        style: const TextStyle(
-                          color: fgColor,
-                          fontWeight: FontWeight.w800,
+                    insetBody(
+                      Center(
+                        child: Text(
+                          'Track: ${data.selectedTrack.label} | ${data.selectedTrack.lengthKm}km',
+                          style: const TextStyle(
+                            color: fgColor,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 12),
                     if (_layout != 2)
-                      Wrap(
+                      insetBody(Wrap(
                         spacing: 18,
                         runSpacing: 8,
                         children: [
@@ -179,9 +313,9 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                                 : TimerPrecision.centisecond,
                           )),
                         ],
-                      ),
+                      )),
                     if (_layout != 2) const SizedBox(height: 12),
-                    Wrap(
+                    insetBody(Wrap(
                       spacing: 10,
                       runSpacing: 8,
                       children: [
@@ -240,45 +374,17 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                           onChanged: (value) =>
                               setState(() => _layout = value ?? _layout),
                         ),
-                        DropdownButton<int>(
-                          value: _lapScreenStyle,
-                          dropdownColor: const Color(0xFF1A1A1A),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
+                        if (isLandscape)
+                          OutlinedButton.icon(
+                            onPressed: () => _openLapScreenLayoutPicker(context),
+                            icon: const Icon(Icons.dashboard_customize_outlined, size: 20),
+                            label: const Text('מסכי לפטיימר'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Color(0xFF22D3EE)),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            ),
                           ),
-                          items: const [
-                            DropdownMenuItem(
-                              value: 1,
-                              child: Text('Lap screen A — Multi-split neon'),
-                            ),
-                            DropdownMenuItem(
-                              value: 2,
-                              child: Text('Lap screen B — Pure center glow'),
-                            ),
-                            DropdownMenuItem(
-                              value: 3,
-                              child: Text('Lap screen C — Digital Pro'),
-                            ),
-                            DropdownMenuItem(
-                              value: 4,
-                              child: Text('Lap screen D — Map HUD'),
-                            ),
-                            DropdownMenuItem(
-                              value: 5,
-                              child: Text('Lap screen E — Team gauge'),
-                            ),
-                            DropdownMenuItem(
-                              value: 6,
-                              child: Text('Lap screen F — Team performance board'),
-                            ),
-                          ],
-                          onChanged: (value) {
-                            final v = (value ?? 1).clamp(1, 6);
-                            setState(() => _lapScreenStyle = v);
-                            _persistLapStyle(v);
-                          },
-                        ),
                         FilterChip(
                           label: Text(
                             _landscapeMode ? 'Taller lap area' : 'Standard lap area',
@@ -315,9 +421,9 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                           child: const Text('Save Session'),
                         ),
                       ],
-                    ),
+                    )),
                     const SizedBox(height: 10),
-                    Wrap(
+                    insetBody(Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: [
@@ -327,19 +433,22 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                         _sensorChip('BLE', data.externalGpsAlive, data.useExternalGps),
                         _metric('G-Force', '${data.gForce.toStringAsFixed(2)}g'),
                       ],
-                    ),
+                    )),
                     const SizedBox(height: 10),
-                    SizedBox(
-                      height: 120,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: TrackMapWidget(
-                          track: data.selectedTrack,
-                          riders: data.riders,
-                          telemetryTrail: data.telemetryTrail,
+                    if (!isLandscape)
+                      insetBody(
+                        SizedBox(
+                          height: 120,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: TrackMapWidget(
+                              track: data.selectedTrack,
+                              riders: data.riders,
+                              telemetryTrail: data.telemetryTrail,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
                     const SizedBox(height: 8),
                   ],
                 ),
@@ -382,6 +491,103 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
     );
   }
 
+  Future<void> _openLapScreenLayoutPicker(BuildContext context) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF161616),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                    child: Text(
+                      'בחירת מסך לפטיימר',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      'ניתן להתאים שמות ותצוגה לפי מוקאפים שתעלה בהמשך.',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.72),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  for (final o in _lapLayoutChoices)
+                    ListTile(
+                      selected: _lapScreenStyle == o.id,
+                      selectedTileColor: Colors.white.withValues(alpha: 0.06),
+                      onTap: () async {
+                        Navigator.pop(ctx);
+                        setState(() => _lapScreenStyle = o.id);
+                        await _persistLapStyle(o.id);
+                      },
+                      leading: Icon(
+                        _lapScreenStyle == o.id
+                            ? Icons.check_circle
+                            : Icons.circle_outlined,
+                        color: const Color(0xFF22D3EE),
+                      ),
+                      title: Text(
+                        o.title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      subtitle: Text(
+                        o.en,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.55),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _miniInfo(String title, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0x5522D3EE)),
+      ),
+      child: Text(
+        '$title: $value',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
   Future<void> _openSectorDialog(BuildContext context) async {
     final targets = widget.telemetryService.sectorSplitTargets;
     final c1 = TextEditingController(text: targets[0].inSeconds.toString());
@@ -391,25 +597,33 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Set Sector Split Targets (seconds)'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: c1,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Sector 1 end'),
-            ),
-            TextField(
-              controller: c2,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Sector 2 end'),
-            ),
-            TextField(
-              controller: c3,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Sector 3 end'),
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: c1,
+                keyboardType: TextInputType.number,
+                style: RaceInputTheme.typingStyle,
+                decoration: const InputDecoration(hintText: 'Sector 1 end'),
+              ),
+              const SizedBox(height: 18),
+              TextField(
+                controller: c2,
+                keyboardType: TextInputType.number,
+                style: RaceInputTheme.typingStyle,
+                decoration: const InputDecoration(hintText: 'Sector 2 end'),
+              ),
+              const SizedBox(height: 18),
+              TextField(
+                controller: c3,
+                keyboardType: TextInputType.number,
+                style: RaceInputTheme.typingStyle,
+                decoration: const InputDecoration(hintText: 'Sector 3 end'),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),

@@ -4,6 +4,7 @@ import '../data/racing_tracks.dart';
 import '../models/racing_track.dart';
 import '../services/group_management_service.dart';
 import '../services/telemetry_service.dart';
+import '../theme/race_input_theme.dart';
 import 'admin_screen.dart';
 import 'ai_premium_screen.dart';
 import 'live_dashboard_screen.dart';
@@ -44,6 +45,9 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final isLandscape = media.size.width > media.size.height;
+
     String tr(String he, String en, String ar) {
       switch (_language) {
         case AppLanguage.hebrew:
@@ -124,7 +128,7 @@ class _HomeShellState extends State<HomeShell> {
             OnboardingScreen(telemetryService: _telemetryService),
             LiveDashboardScreen(telemetryService: _telemetryService),
             const PostSessionScreen(),
-            const AiPremiumScreen(),
+            AiPremiumScreen(telemetryService: _telemetryService),
           ]
         : _portal == AppPortal.manager
             ? [
@@ -176,7 +180,11 @@ class _HomeShellState extends State<HomeShell> {
           children: [
             Text(
               tr('מארגן: ${_managerGroupName ?? ''}', 'Organizer: ${_managerGroupName ?? ''}', 'منظم: ${_managerGroupName ?? ''}'),
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF22D3EE),
+              ),
             ),
             if (_managerAssignedTrackName != null && _managerAssignedDateIso != null)
               Text(
@@ -185,7 +193,12 @@ class _HomeShellState extends State<HomeShell> {
                   'Track: $_managerAssignedTrackName · Day: $_managerAssignedDateIso',
                   'المسار: $_managerAssignedTrackName · اليوم: $_managerAssignedDateIso',
                 ),
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, height: 1.15),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white70,
+                  height: 1.15,
+                ),
               ),
           ],
         );
@@ -215,9 +228,20 @@ class _HomeShellState extends State<HomeShell> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFFD32F2F),
-        foregroundColor: Colors.white,
+        toolbarHeight: isLandscape ? 44 : kToolbarHeight,
+        backgroundColor: const Color(0xFF000000),
+        foregroundColor: const Color(0xFF22D3EE),
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         title: appBarTitle,
+        titleTextStyle: TextStyle(
+          color: const Color(0xFF22D3EE),
+          fontWeight: FontWeight.w900,
+          fontSize: isLandscape ? 16 : 19,
+          shadows: const [
+            Shadow(color: Color(0xAA22D3EE), blurRadius: 12),
+          ],
+        ),
         actions: [
           IconButton(
             onPressed: () {
@@ -239,19 +263,26 @@ class _HomeShellState extends State<HomeShell> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
               child: DropdownButtonFormField<AppLanguage>(
                 key: ValueKey(_language),
                 initialValue: _language,
-                decoration: InputDecoration(
-                  labelText: tr('שפה', 'Language', 'اللغة'),
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                ),
+                style: RaceInputTheme.dropdownStyle,
+                dropdownColor: RaceInputTheme.fieldFill,
+                decoration: RaceInputTheme.neonDecoration(tr('שפה', 'Language', 'اللغة')),
                 items: [
-                  DropdownMenuItem(value: AppLanguage.hebrew, child: Text(tr('עברית', 'Hebrew', 'العبرية'))),
-                  const DropdownMenuItem(value: AppLanguage.english, child: Text('English')),
-                  DropdownMenuItem(value: AppLanguage.arabic, child: Text(tr('ערבית', 'Arabic', 'العربية'))),
+                  DropdownMenuItem(
+                    value: AppLanguage.hebrew,
+                    child: Text(tr('עברית', 'Hebrew', 'العبرية'), style: RaceInputTheme.typingStyle),
+                  ),
+                  const DropdownMenuItem(
+                    value: AppLanguage.english,
+                    child: Text('English', style: RaceInputTheme.typingStyle),
+                  ),
+                  DropdownMenuItem(
+                    value: AppLanguage.arabic,
+                    child: Text(tr('ערבית', 'Arabic', 'العربية'), style: RaceInputTheme.typingStyle),
+                  ),
                 ],
                 onChanged: (value) {
                   if (value == null) return;
@@ -264,12 +295,16 @@ class _HomeShellState extends State<HomeShell> {
         ),
       ),
       bottomNavigationBar: NavigationBar(
-        backgroundColor: const Color(0xFFD32F2F),
-        indicatorColor: const Color(0xFFFFEB3B),
+        height: isLandscape ? 56 : 72,
+        backgroundColor: const Color(0xFF000000),
+        indicatorColor: const Color(0x3322D3EE),
+        labelBehavior: isLandscape
+            ? NavigationDestinationLabelBehavior.alwaysHide
+            : NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith<TextStyle?>((states) {
           if (states.contains(WidgetState.selected)) {
             return const TextStyle(
-              color: Colors.black,
+              color: Color(0xFF22D3EE),
               fontWeight: FontWeight.w900,
             );
           }
@@ -289,11 +324,11 @@ class _HomeShellState extends State<HomeShell> {
                 ),
                 selectedIcon: d.selectedIcon == null
                     ? IconTheme(
-                        data: const IconThemeData(color: Colors.black),
+                        data: const IconThemeData(color: Color(0xFF22D3EE)),
                         child: d.icon,
                       )
                     : IconTheme(
-                        data: const IconThemeData(color: Colors.black),
+                        data: const IconThemeData(color: Color(0xFF22D3EE)),
                         child: d.selectedIcon!,
                       ),
                 label: d.label,
@@ -354,25 +389,34 @@ class _OrganizerAdminPanelState extends State<_OrganizerAdminPanel> {
             const SizedBox(height: 16),
             TextField(
               controller: _nameController,
-              decoration:
-                  const InputDecoration(labelText: 'New organizer group name'),
+              style: RaceInputTheme.typingStyle,
+              decoration: const InputDecoration(hintText: 'New organizer group name'),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 18),
             TextField(
               controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Organizer password'),
+              style: RaceInputTheme.typingStyle,
+              obscureText: true,
+              decoration: const InputDecoration(hintText: 'Organizer password'),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 18),
             DropdownButtonFormField<RacingTrack>(
               key: ValueKey(_track),
               initialValue: _track,
-              decoration: const InputDecoration(labelText: 'Assigned paid track'),
+              style: RaceInputTheme.dropdownStyle,
+              dropdownColor: RaceInputTheme.fieldFill,
+              decoration: const InputDecoration(hintText: 'Assigned paid track'),
               items: racingTracks
-                  .map((t) => DropdownMenuItem(value: t, child: Text(t.name)))
+                  .map(
+                    (t) => DropdownMenuItem(
+                      value: t,
+                      child: Text(t.name, style: RaceInputTheme.typingStyle),
+                    ),
+                  )
                   .toList(),
               onChanged: (value) => setState(() => _track = value ?? _track),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 18),
             ListTile(
               tileColor: Colors.white,
               shape: RoundedRectangleBorder(
@@ -491,9 +535,9 @@ class _EntrySelector extends StatelessWidget {
                 const Icon(Icons.sports_motorsports, color: Color(0xFF22D3EE), size: 52),
                 const SizedBox(height: 12),
                 _neonFieldHint(tr('הזן אימייל', 'Enter Email', 'ادخل البريد')),
-                const SizedBox(height: 10),
+                const SizedBox(height: 18),
                 _neonFieldHint(tr('הזן סיסמה', 'Enter Password', 'ادخل كلمة المرور')),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 FilledButton(
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFFE6EEF0),
@@ -580,13 +624,22 @@ class _EntrySelector extends StatelessWidget {
                     child: DropdownButtonFormField<AppLanguage>(
                       key: ValueKey(language),
                       initialValue: language,
-                      dropdownColor: const Color(0xFF101010),
-                      style: const TextStyle(color: Colors.white),
+                      dropdownColor: RaceInputTheme.fieldFill,
+                      style: RaceInputTheme.dropdownStyle,
                       decoration: _neonDecoration(tr('שפה', 'Language', 'اللغة')),
                       items: [
-                        DropdownMenuItem(value: AppLanguage.hebrew, child: Text(tr('עברית', 'Hebrew', 'العبرية'))),
-                        const DropdownMenuItem(value: AppLanguage.english, child: Text('English')),
-                        DropdownMenuItem(value: AppLanguage.arabic, child: Text(tr('ערבית', 'Arabic', 'العربية'))),
+                        DropdownMenuItem(
+                          value: AppLanguage.hebrew,
+                          child: Text(tr('עברית', 'Hebrew', 'العبرية'), style: RaceInputTheme.typingStyle),
+                        ),
+                        const DropdownMenuItem(
+                          value: AppLanguage.english,
+                          child: Text('English', style: RaceInputTheme.typingStyle),
+                        ),
+                        DropdownMenuItem(
+                          value: AppLanguage.arabic,
+                          child: Text(tr('ערבית', 'Arabic', 'العربية'), style: RaceInputTheme.typingStyle),
+                        ),
                       ],
                       onChanged: (value) {
                         if (value != null) onLanguageChanged(value);
@@ -610,13 +663,22 @@ class _EntrySelector extends StatelessWidget {
                       child: DropdownButtonFormField<AppLanguage>(
                         key: ValueKey(language),
                         initialValue: language,
-                        dropdownColor: const Color(0xFF101010),
-                        style: const TextStyle(color: Colors.white),
+                        dropdownColor: RaceInputTheme.fieldFill,
+                        style: RaceInputTheme.dropdownStyle,
                         decoration: _neonDecoration(tr('שפה', 'Language', 'اللغة')),
                         items: [
-                          DropdownMenuItem(value: AppLanguage.hebrew, child: Text(tr('עברית', 'Hebrew', 'العبرية'))),
-                          const DropdownMenuItem(value: AppLanguage.english, child: Text('English')),
-                          DropdownMenuItem(value: AppLanguage.arabic, child: Text(tr('ערבית', 'Arabic', 'العربية'))),
+                          DropdownMenuItem(
+                            value: AppLanguage.hebrew,
+                            child: Text(tr('עברית', 'Hebrew', 'العبرية'), style: RaceInputTheme.typingStyle),
+                          ),
+                          const DropdownMenuItem(
+                            value: AppLanguage.english,
+                            child: Text('English', style: RaceInputTheme.typingStyle),
+                          ),
+                          DropdownMenuItem(
+                            value: AppLanguage.arabic,
+                            child: Text(tr('ערבית', 'Arabic', 'العربية'), style: RaceInputTheme.typingStyle),
+                          ),
                         ],
                         onChanged: (value) {
                           if (value != null) onLanguageChanged(value);
@@ -659,35 +721,24 @@ class _EntrySelector extends StatelessWidget {
     );
   }
 
-  static InputDecoration _neonDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      filled: true,
-      fillColor: const Color(0xFF0F0F0F),
-      labelStyle: const TextStyle(color: Color(0xFF7EE7F2)),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFF22D3EE), width: 1.2),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFF22D3EE), width: 1.5),
-      ),
-    );
-  }
+  static InputDecoration _neonDecoration(String hint) => RaceInputTheme.neonDecoration(hint);
 
   Widget _neonFieldHint(String hint) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F0F0F),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF22D3EE), width: 1.2),
+        color: RaceInputTheme.fieldFill,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: RaceInputTheme.neon, width: 1.2),
         boxShadow: const [BoxShadow(color: Color(0x5522D3EE), blurRadius: 10)],
       ),
+      alignment: AlignmentDirectional.centerStart,
       child: Text(
         hint,
-        style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w600),
+        maxLines: 4,
+        softWrap: true,
+        style: RaceInputTheme.hintStyle,
       ),
     );
   }
@@ -742,20 +793,25 @@ class _OrganizerLoginFormState extends State<_OrganizerLoginForm> {
           key: ValueKey(_selectedPaidGroup),
           initialValue: _selectedPaidGroup,
           isExpanded: true,
-          dropdownColor: const Color(0xFF101010),
-          style: const TextStyle(color: Colors.white),
+          dropdownColor: RaceInputTheme.fieldFill,
+          style: RaceInputTheme.dropdownStyle,
           decoration: _EntrySelector._neonDecoration(
             widget.tr('קבוצת מארגן', 'Organizer Group', 'مجموعة المنظم'),
           ),
           items: widget.paidGroups
-              .map((name) => DropdownMenuItem(value: name, child: Text(name)))
+              .map(
+                (name) => DropdownMenuItem(
+                  value: name,
+                  child: Text(name, style: RaceInputTheme.typingStyle),
+                ),
+              )
               .toList(),
           onChanged: (value) => setState(() => _selectedPaidGroup = value),
         );
         final passwordField = TextField(
           controller: widget.organizerPasswordController,
           obscureText: true,
-          style: const TextStyle(color: Colors.white),
+          style: RaceInputTheme.typingStyle,
           decoration: _EntrySelector._neonDecoration(
             widget.tr('סיסמה', 'Password', 'كلمة المرور'),
           ),
@@ -771,9 +827,9 @@ class _OrganizerLoginFormState extends State<_OrganizerLoginForm> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               groupDropdown,
-              const SizedBox(height: 8),
+              const SizedBox(height: 20),
               passwordField,
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
               Align(alignment: AlignmentDirectional.centerEnd, child: enterButton),
             ],
           );
@@ -782,9 +838,9 @@ class _OrganizerLoginFormState extends State<_OrganizerLoginForm> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(child: groupDropdown),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             SizedBox(width: 180, child: passwordField),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             enterButton,
           ],
         );

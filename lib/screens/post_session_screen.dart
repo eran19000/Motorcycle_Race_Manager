@@ -54,6 +54,11 @@ class _PostSessionScreenState extends State<PostSessionScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         Text('Saved Sessions', style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 4),
+        Text(
+          'Tip: open the AI tab to run Gemini “AI Coach Insights” on your live session stats (track, best lap, speed, lean, sectors).',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
+        ),
         if (widget.organizerGroupFilter != null &&
             widget.organizerGroupFilter!.trim().isNotEmpty) ...[
           const SizedBox(height: 6),
